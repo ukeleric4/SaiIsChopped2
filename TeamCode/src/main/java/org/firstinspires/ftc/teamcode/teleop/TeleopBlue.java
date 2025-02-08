@@ -179,7 +179,7 @@ public class TeleopBlue extends LinearOpMode {
     }
 
     public void vision() {
-        if (gamepad1.a) {
+        if (gamepad2.a) {
             if (!following) {
                 follower.setPose(new Pose(0,0, 0));
                 follower.updatePose();
@@ -202,5 +202,32 @@ public class TeleopBlue extends LinearOpMode {
                 following = true;
             }
         }
+    }
+
+    public void orientation() {
+        if (gamepad2.b) {
+            orientation.moveNormal();
+        }
+        if (gamepad2.x) {
+            orientation.moveSideways();
+        }
+    }
+
+    public void update() {
+        if (opModeTimer.getElapsedTime() > 3000) {
+            vision.updateVision();
+        }
+
+        if (following && pathTimer.getElapsedTime() > 500) {
+            follower.startTeleopDrive();
+            following = false;
+        }
+
+        follower.setTeleOpMovementVectors(-gamepad1.left_stick_y * velocity, -gamepad1.left_stick_x * velocity, -gamepad1.right_stick_x * 0.4, true);
+
+        panningMotor.updatePanning();
+        slides.updateSlide();
+        slides.updatePower();
+        follower.update();
     }
 }

@@ -49,15 +49,24 @@ public class BUCKET extends LinearOpMode {
         switch (pathState) {
             case 0:
                 follower.followPath(bucketInitial, true);
-                slides.setTargetPos(2300);
                 panning.setTargetPos(1700);
+                while (panning.getCurrentPos() < 1500) {
+                    panning.updatePanning();
+                    follower.update();
+                }
+                slides.setTargetPos(2300);
+                //slides.setTargetPos(2300);
                 setPathState(2);
                 break;
             case 2:
-                if (slides.getCurrentPos() > 2000) {
+                if (slides.getCurrentPos() > 2100) {
                     // Move servos
                     panningServo.moveSpecific(0.45);
-                    sleep(500);
+                    setPathState(123);
+                }
+                break;
+            case 123:
+                if (pathTimer.getElapsedTime() > 500 && !follower.isBusy()) {
                     claw.openClaw();
                     setPathState(3);
                 }
@@ -68,6 +77,11 @@ public class BUCKET extends LinearOpMode {
                     sleep(300);
                     follower.followPath(pickup1, true);
                     slides.setTargetPos(700);
+                    while (slides.getCurrentPos() > 800) {
+                        slides.updateSlide();
+                        slides.updatePower();
+                        follower.update();
+                    }
                     panning.setTargetPos(0);
                     setPathState(4);
                 }
@@ -91,10 +105,14 @@ public class BUCKET extends LinearOpMode {
                 }
                 break;
             case 7:
-                if (slides.getCurrentPos() > 2000) {
+                if (slides.getCurrentPos() > 2100) {
                     // Move servos
                     panningServo.moveSpecific(0.45);
-                    sleep(500);
+                    setPathState(456);
+                }
+                break;
+            case 456:
+                if (pathTimer.getElapsedTime() > 500 && !follower.isBusy()) {
                     claw.openClaw();
                     setPathState(8);
                 }
@@ -105,6 +123,11 @@ public class BUCKET extends LinearOpMode {
                     sleep(300);
                     follower.followPath(pickup2, true);
                     slides.setTargetPos(700);
+                    while (slides.getCurrentPos() > 800) {
+                        slides.updateSlide();
+                        slides.updatePower();
+                        follower.update();
+                    }
                     panning.setTargetPos(0);
                     setPathState(9);
                 }
@@ -122,13 +145,16 @@ public class BUCKET extends LinearOpMode {
                 if (pathTimer.getElapsedTime() > 200) {
                     pitching.moveUp();
                     follower.followPath(bucket2);
-                    slides.setTargetPos(2300);
                     panning.setTargetPos(1700);
-                    setPathState(11);
+                    while (panning.getCurrentPos() < 1500) {
+                        panning.updatePanning();
+                        follower.update();
+                    }
+                    slides.setTargetPos(2300);
                 }
                 break;
             case 12:
-                if (slides.getCurrentPos() > 2000) {
+                if (slides.getCurrentPos() > 2100) {
                     // Move servos
                     panningServo.moveSpecific(0.45);
                     sleep(500);
@@ -142,41 +168,57 @@ public class BUCKET extends LinearOpMode {
                     sleep(300);
                     follower.followPath(pickup3, true);
                     slides.setTargetPos(700);
+                    while (slides.getCurrentPos() > 800) {
+                        slides.updateSlide();
+                        slides.updatePower();
+                        follower.update();
+                    }
                     panning.setTargetPos(0);
-                    setPathState(14);
+                    setPathState(333);
                 }
                 break;
             case 14:
-                if (!follower.isBusy()) {
-                    // Add servo movements
-                    setPathState(15);
-                }
+                    if (!follower.isBusy()) {
+                        // Add servo movements
+                        pitching.moveDown();
+                        sleep(250);
+                        claw.closeClaw();
+                        setPathState(15);
+                    }
                 break;
             case 15:
                 if (pathTimer.getElapsedTime() > 600) {
                     follower.followPath(bucket3);
-                    slides.setTargetPos(2300);
+                    panning.setTargetPos(1700);
                     setPathState(16);
                 }
                 break;
             case 16:
-                if (slides.getCurrentPos() > 200) {
-                    panning.setTargetPos(1700);
+                if (pathTimer.getElapsedTime() > 1000) {
+                    slides.setTargetPos(1700);
                     setPathState(17);
                 }
             case 17:
-                if (slides.getCurrentPos() > 2000) {
-                    // Move servos
-
+                if (slides.getCurrentPos() > 2100) {
+                    panningServo.moveSpecific(0.45);
+                    sleep(500);
+                    claw.openClaw();
                     setPathState(18);
+
+                    //setPathState(18);
                 }
                 break;
             case 18:
                 if (pathTimer.getElapsedTime() > 1000) {
                     follower.followPath(sub1, true);
-                    slides.setTargetPos(1000);
+                    slides.setTargetPos(0);
                     panning.setTargetPos(0);
-                    setPathState(19);
+                    while (slides.getCurrentPos() > 800) {
+                        slides.updateSlide();
+                        slides.updatePower();
+                        follower.update();
+                    }
+
                 }
                 break;
         }
@@ -190,11 +232,10 @@ public class BUCKET extends LinearOpMode {
     public void buildPaths() {
         bucketInitial = follower.pathBuilder()
                 .addPath(
-                        // Line 1
                         new BezierCurve(
                                 new Point(136.621, 33.317, Point.CARTESIAN),
                                 new Point(123.876, 33.540, Point.CARTESIAN),
-                                new Point(121.863, 20.571, Point.CARTESIAN)
+                                new Point(125.503, 17.304, Point.CARTESIAN)
                         )
                 )
                 .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(135)).build();
@@ -203,10 +244,10 @@ public class BUCKET extends LinearOpMode {
                         // Line 2
                         new BezierLine(
                                 new Point(121.863, 20.571, Point.CARTESIAN),
-                                new Point(116.006, 14.702, Point.CARTESIAN)
+                                new Point(113.790, 16.917, Point.CARTESIAN)
                         )
                 )
-                .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(173)).build();
+                .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(160)).build();
         bucket1 = follower.pathBuilder()
                 .addPath(
                         // Line 3
@@ -215,25 +256,25 @@ public class BUCKET extends LinearOpMode {
                                 new Point(121.863, 20.571, Point.CARTESIAN)
                         )
                 )
-                .setLinearHeadingInterpolation(Math.toRadians(173), Math.toRadians(135)).build();
+                .setLinearHeadingInterpolation(Math.toRadians(160), Math.toRadians(135)).build();
         pickup2 = follower.pathBuilder()
                 .addPath(
-                        // Line 4
                         new BezierLine(
-                                new Point(121.863, 20.571, Point.CARTESIAN),
-                                new Point(116.811, 6.042, Point.CARTESIAN)
+                                new Point(120.839, 19.133, Point.CARTESIAN),
+                                new Point(115.956, 12.530, Point.CARTESIAN)
                         )
                 )
-                .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180)).build();
+                .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(193))
+                .build();
         bucket2 = follower.pathBuilder()
                 .addPath(
-                        // Line 5
                         new BezierLine(
-                                new Point(116.811, 6.042, Point.CARTESIAN),
-                                new Point(121.863, 20.571, Point.CARTESIAN)
+                                new Point(115.956, 12.530, Point.CARTESIAN),
+                                new Point(119.027, 17.320, Point.CARTESIAN)
                         )
                 )
-                .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(135)).build();
+                .setLinearHeadingInterpolation(Math.toRadians(193), Math.toRadians(135))
+                .build();
         pickup3 = follower.pathBuilder()
                 .addPath(
                         // Line 6
@@ -242,7 +283,7 @@ public class BUCKET extends LinearOpMode {
                                 new Point(115.804, 4.834, Point.CARTESIAN)
                         )
                 )
-                .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(215)).build();
+                .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(200)).build();
         bucket3 = follower.pathBuilder()
                 .addPath(
                         // Line 7
@@ -251,103 +292,17 @@ public class BUCKET extends LinearOpMode {
                                 new Point(121.863, 20.571, Point.CARTESIAN)
                         )
                 )
-                .setLinearHeadingInterpolation(Math.toRadians(215), Math.toRadians(135)).build();
+                .setLinearHeadingInterpolation(Math.toRadians(200), Math.toRadians(135)).build();
         sub1 = follower.pathBuilder()
                 .addPath(
-                        // Line 8
                         new BezierCurve(
-                                new Point(121.863, 20.571, Point.CARTESIAN),
-                                new Point(88.099, 19.453, Point.CARTESIAN),
-                                new Point(84.075, 42.037, Point.CARTESIAN)
+                                new Point(119.429, 17.723, Point.CARTESIAN),
+                                new Point(70.000, 10.000, Point.CARTESIAN),
+                                new Point(72.199, 47.934, Point.CARTESIAN)
                         )
                 )
-                .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(110)).build();
-        bucket4 = follower.pathBuilder()
-                .addPath(
-                        // Line 9
-                        new BezierCurve(
-                                new Point(84.075, 42.037, Point.CARTESIAN),
-                                new Point(89.665, 18.783, Point.CARTESIAN),
-                                new Point(121.863, 20.571, Point.CARTESIAN)
-                        )
-                )
-                .setLinearHeadingInterpolation(Math.toRadians(110), Math.toRadians(135)).build();
-        entireThing = follower.pathBuilder()
-                .addPath(
-                        // Line 1
-                        new BezierCurve(
-                                new Point(136.621, 33.317, Point.CARTESIAN),
-                                new Point(123.876, 33.540, Point.CARTESIAN),
-                                new Point(121.863, 20.571, Point.CARTESIAN)
-                        )
-                )
-                .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(135))
-                .addPath(
-                        // Line 2
-                        new BezierLine(
-                                new Point(121.863, 20.571, Point.CARTESIAN),
-                                new Point(118.509, 21.242, Point.CARTESIAN)
-                        )
-                )
-                .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(173))
-                .addPath(
-                        // Line 3
-                        new BezierLine(
-                                new Point(118.509, 21.242, Point.CARTESIAN),
-                                new Point(121.863, 20.571, Point.CARTESIAN)
-                        )
-                )
-                .setLinearHeadingInterpolation(Math.toRadians(173), Math.toRadians(135))
-                .addPath(
-                        // Line 4
-                        new BezierLine(
-                                new Point(121.863, 20.571, Point.CARTESIAN),
-                                new Point(118.733, 12.522, Point.CARTESIAN)
-                        )
-                )
-                .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180))
-                .addPath(
-                        // Line 5
-                        new BezierLine(
-                                new Point(118.733, 12.522, Point.CARTESIAN),
-                                new Point(121.863, 20.571, Point.CARTESIAN)
-                        )
-                )
-                .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(135))
-                .addPath(
-                        // Line 6
-                        new BezierLine(
-                                new Point(121.863, 20.571, Point.CARTESIAN),
-                                new Point(114.037, 12.075, Point.CARTESIAN)
-                        )
-                )
-                .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(215))
-                .addPath(
-                        // Line 7
-                        new BezierLine(
-                                new Point(114.037, 12.075, Point.CARTESIAN),
-                                new Point(121.863, 20.571, Point.CARTESIAN)
-                        )
-                )
-                .setLinearHeadingInterpolation(Math.toRadians(215), Math.toRadians(135))
-                .addPath(
-                        // Line 8
-                        new BezierCurve(
-                                new Point(121.863, 20.571, Point.CARTESIAN),
-                                new Point(88.099, 19.453, Point.CARTESIAN),
-                                new Point(84.075, 42.037, Point.CARTESIAN)
-                        )
-                )
-                .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(110))
-                .addPath(
-                        // Line 9
-                        new BezierCurve(
-                                new Point(84.075, 42.037, Point.CARTESIAN),
-                                new Point(89.665, 18.783, Point.CARTESIAN),
-                                new Point(121.863, 20.571, Point.CARTESIAN)
-                        )
-                )
-                .setLinearHeadingInterpolation(Math.toRadians(110), Math.toRadians(135)).build();
+                .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(90))
+                .build();
     }
 
     @Override

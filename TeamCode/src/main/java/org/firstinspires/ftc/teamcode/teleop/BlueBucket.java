@@ -11,7 +11,6 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.parts.Claw;
 import org.firstinspires.ftc.teamcode.parts.Light;
@@ -25,8 +24,8 @@ import org.firstinspires.ftc.teamcode.pedroPathing.constants.LConstants;
 import org.firstinspires.ftc.teamcode.vision.Vision;
 import org.firstinspires.ftc.vision.VisionPortal;
 
-@TeleOp(name="Blue Teleop", group="Teleops")
-public class TeleopBlue extends LinearOpMode {
+@TeleOp(name="TeleOp Blue BUCKET", group="Teleops")
+public class BlueBucket extends LinearOpMode {
     private PIDFPanning panningMotor;
     private PIDFSlide slides;
     private Claw claw;
@@ -59,7 +58,7 @@ public class TeleopBlue extends LinearOpMode {
         dSensor = hardwareMap.get(DistanceSensor.class, "distance");
         light = new Light(hardwareMap);
 
-        vision = new Vision(hardwareMap, telemetry, true, false, true);
+        vision = new Vision(hardwareMap, telemetry, true, true, false);
         pathTimer = new Timer();
         opModeTimer = new Timer();
 
@@ -83,10 +82,8 @@ public class TeleopBlue extends LinearOpMode {
         while (opModeIsActive()) {
             updateVelocity();
             pitching();
-            hanging();
             manualPanning();
             clawMovement();
-            specimenPosition();
             orientation();
             vision();
             slidePos();
@@ -121,13 +118,20 @@ public class TeleopBlue extends LinearOpMode {
             panningServo.moveDown();
             claw.openClaw();
         } else if (gamepad1.left_bumper) {
+            panningMotor.setTargetPos(0);
             slides.setTargetPos(0);
+            while (panningMotor.getCurrentPos() > 100) {
+                update();
+            }
+            slides.setTargetPos(1500);
+            panningServo.moveDown();
+            claw.openClaw();
         }
     }
 
     public void updateDistanceSensor() {
         double distance = dSensor.getDistance(DistanceUnit.CM);
-        if (distance > 2.8 && slides.getCurrentPos() < 900 || slides.getCurrentPos() > 1100) {
+        if (distance > 2.8) {
             light.goToRed();
         } else if (distance < 2.8) {
             light.goToBlue();
@@ -146,12 +150,15 @@ public class TeleopBlue extends LinearOpMode {
 
     public void clawMovement() {
         if (gamepad2.dpad_down) {
+            follower.breakFollowing();
             pitching.moveDown();
             sleep(400);
             claw.closeClaw();
             sleep(250);
             pitching.moveUp();
             sleep(500);
+            follower.startTeleopDrive();
+            follower.setTeleOpMovementVectors(-gamepad1.left_stick_y * velocity, -gamepad1.left_stick_x * velocity, -gamepad1.right_stick_x * 0.4, true);
             if ((dSensor.getDistance(DistanceUnit.CM) < 2.8)) {
                 slides.setTargetPos(0);
                 while (slides.getCurrentPos() > 25) {

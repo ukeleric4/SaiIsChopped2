@@ -1,7 +1,12 @@
 package org.firstinspires.ftc.teamcode.teleop;
 
-import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
-import com.qualcomm.hardware.rev.RevColorSensorV3;
+import com.pedropathing.follower.Follower;
+import com.pedropathing.localization.Pose;
+import com.pedropathing.pathgen.BezierLine;
+import com.pedropathing.pathgen.PathChain;
+import com.pedropathing.pathgen.Point;
+import com.pedropathing.util.Constants;
+import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
@@ -14,24 +19,13 @@ import org.firstinspires.ftc.teamcode.parts.PIDFPanning;
 import org.firstinspires.ftc.teamcode.parts.PIDFSlide;
 import org.firstinspires.ftc.teamcode.parts.PanningServo;
 import org.firstinspires.ftc.teamcode.parts.Pitching;
-
-import com.pedropathing.util.Timer;
-import com.pedropathing.pathgen.Point;
-
-import org.firstinspires.ftc.teamcode.vision.Vision;
-
-import com.pedropathing.follower.Follower;
-import com.pedropathing.localization.Pose;
-import com.pedropathing.pathgen.BezierLine;
-import com.pedropathing.pathgen.PathChain;
-import com.pedropathing.util.Constants;
-
 import org.firstinspires.ftc.teamcode.pedroPathing.constants.FConstants;
 import org.firstinspires.ftc.teamcode.pedroPathing.constants.LConstants;
+import org.firstinspires.ftc.teamcode.vision.Vision;
 import org.firstinspires.ftc.vision.VisionPortal;
 
-@TeleOp(name="Red Teleop", group="Teleops")  //@Autonomous(...) is the other common choice
-public class FinalTeleop extends LinearOpMode {
+@TeleOp(name="TeleOp Red Submersible", group="Teleops")
+public class RedSub extends LinearOpMode {
     private PIDFPanning panningMotor;
     private PIDFSlide slides;
     private Claw claw;
@@ -47,7 +41,7 @@ public class FinalTeleop extends LinearOpMode {
     private final Pose startPose = new Pose(0, 0, 0);
     PathChain idk;
 
-    org.firstinspires.ftc.teamcode.vision.Vision vision;
+    Vision vision;
 
     Timer pathTimer;
     Timer opModeTimer;
@@ -88,11 +82,10 @@ public class FinalTeleop extends LinearOpMode {
         while (opModeIsActive()) {
             updateVelocity();
             pitching();
-            hanging();
             manualPanning();
             clawMovement();
-            specimenPosition();
             orientation();
+            specimenPositions();
             vision();
             slidePos();
             updateDistanceSensor();
@@ -112,7 +105,6 @@ public class FinalTeleop extends LinearOpMode {
         }
     }
 
-    // Test function
     public void pitching() {
         if (gamepad1.dpad_down) {
             pitching.moveDown();
@@ -121,53 +113,42 @@ public class FinalTeleop extends LinearOpMode {
         }
     }
 
-    public void hanging() {
-        if (gamepad1.dpad_left && gamepad2.dpad_left) {
-            slides.setTargetPos(600);
-            while (slides.getCurrentPos() < 580) {
-                slides.updateSlide();
-                slides.updatePower();
-            }
-            panningMotor.setTargetPos(1800);
-            while (panningMotor.getCurrentPos() < 1700) {
-                panningMotor.updatePanning();
-                slides.updateSlide();
-                slides.updatePower();
-            }
-            slides.setTargetPos(1000);
-            while (slides.getCurrentPos() < 980) {
-                panningMotor.updatePanning();
-                slides.updateSlide();
-                slides.updatePower();
-            }
-            slides.setTargetPos(0);
-            while (slides.getCurrentPos() > 600) {
-                panningMotor.updatePanning();
-                slides.updateSlide();
-                slides.updatePower();
-            }
-            panningMotor.setTargetPos(500);
-            while (slides.getCurrentPos() > 10) {
-                panningMotor.updatePanning();
-                slides.updateSlide();
-                slides.updatePower();
-            }
-        }
-    }
-
     public void slidePos() {
         if (gamepad2.y) {
             slides.setTargetPos(1500);
             panningServo.moveDown();
             claw.openClaw();
-        } else if (gamepad1.left_bumper) {
+        } else if (gamepad1.right_bumper) {
+            slides.setTargetPos(1200);
+            claw.closeClaw();
+            panningServo.moveSpecific(0.45);
+        }
+    }
+
+    public void specimenPositions() {
+        if (gamepad2.left_stick_button) {
             slides.setTargetPos(0);
+            while (slides.getCurrentPos() > 650) {
+                update();
+            }
+            claw.openClaw();
+            orientation.moveNormal();
+            panningMotor.setTargetPos(0);
+            panningServo.moveSpecific(0.45);
+        }
+        if (gamepad2.right_stick_button) {
+            claw.closeClaw();
+            sleep(250);
+            orientation.moveOpposite();
+            panningServo.moveSpecific(0.9);
+            panningMotor.setTargetPos(1700);
+            slides.setTargetPos(1000);
         }
     }
 
     public void updateDistanceSensor() {
         double distance = dSensor.getDistance(DistanceUnit.CM);
-        if (distance > 2.8 && slides.getCurrentPos() < 900 || slides.getCurrentPos() > 1100) {
+        if (distance > 2.8) {
             light.goToRed();
         } else if (distance < 2.8) {
             light.goToBlue();
@@ -176,50 +157,27 @@ public class FinalTeleop extends LinearOpMode {
         }
     }
 
-    // Test function
     public void manualPanning() {
         if (gamepad2.right_trigger > 0.8) {
-           panningMotor.setTargetPos(1600);
+            panningMotor.setTargetPos(1600);
         } else if (gamepad2.left_trigger > 0.8) {
             panningMotor.setTargetPos(0);
         }
     }
 
-    public void specimenPosition() {
-        if (gamepad1.x) {
-            // Open claw, then move to this position
-            claw.openClaw();
-            panningServo.moveUp();
-            slides.setTargetPos(0);
-            panningMotor.setTargetPos(1700);
-        }
-        if (gamepad1.b) {
-            // Close claw first, then move to these positions
-            claw.closeClaw();
-            sleep(250);
-            panningMotor.setTargetPos(450);
-            slides.setTargetPos(1200);
-        }
-    }
-
     public void clawMovement() {
         if (gamepad2.dpad_down) {
+            follower.breakFollowing();
             pitching.moveDown();
             sleep(400);
             claw.closeClaw();
             sleep(250);
             pitching.moveUp();
             sleep(500);
+            follower.startTeleopDrive();
+            follower.setTeleOpMovementVectors(-gamepad1.left_stick_y * velocity, -gamepad1.left_stick_x * velocity, -gamepad1.right_stick_x * 0.4, true);
             if ((dSensor.getDistance(DistanceUnit.CM) < 2.8)) {
                 slides.setTargetPos(0);
-                while (slides.getCurrentPos() > 25) {
-                    update();
-                }
-                panningMotor.setTargetPos(1600);
-                while (panningMotor.getCurrentPos() < 1200) {update();}
-                panningServo.moveSpecific(0.55);
-                orientation.moveNormal();
-                slides.setTargetPos(2300);
             } else {
                 claw.openClaw();
             }
@@ -227,7 +185,6 @@ public class FinalTeleop extends LinearOpMode {
             claw.openClaw();
             sleep(300);
             panningServo.moveDown();
-            sleep(300);
             slides.setTargetPos(0);
             while (slides.getCurrentPos() > 1000) {
                 update();
@@ -237,7 +194,7 @@ public class FinalTeleop extends LinearOpMode {
     }
 
     public void vision() {
-        if (gamepad1.a) {
+        if (gamepad2.a) {
             if (!following) {
                 follower.setPose(new Pose(0,0, 0));
                 follower.updatePose();
@@ -262,7 +219,6 @@ public class FinalTeleop extends LinearOpMode {
         }
     }
 
-
     public void orientation() {
         if (gamepad2.b) {
             orientation.moveNormal();
@@ -271,7 +227,6 @@ public class FinalTeleop extends LinearOpMode {
             orientation.moveSideways();
         }
     }
-
 
     public void update() {
         if (opModeTimer.getElapsedTime() > 3000) {
@@ -291,4 +246,3 @@ public class FinalTeleop extends LinearOpMode {
         follower.update();
     }
 }
-

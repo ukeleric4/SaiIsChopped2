@@ -24,7 +24,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.constants.FConstants;
 import org.firstinspires.ftc.teamcode.pedroPathing.constants.LConstants;
 
 @Autonomous
-public class SubOld extends LinearOpMode {
+public class SUBMERSIBLE extends LinearOpMode {
     public PIDFPanning panning;
     public PIDFSlide slides;
     public Claw claw;

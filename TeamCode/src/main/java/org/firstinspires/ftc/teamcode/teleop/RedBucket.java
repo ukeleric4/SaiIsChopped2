@@ -41,7 +41,7 @@ public class RedBucket extends LinearOpMode {
     private final Pose startPose = new Pose(0, 0, 0);
     PathChain idk;
 
-    Vision vision;
+//    Vision vision;
 
     Timer pathTimer;
     Timer opModeTimer;
@@ -58,7 +58,7 @@ public class RedBucket extends LinearOpMode {
         dSensor = hardwareMap.get(DistanceSensor.class, "distance");
         light = new Light(hardwareMap);
 
-        vision = new Vision(hardwareMap, telemetry, true, false, true);
+       // vision = new Vision(hardwareMap, telemetry, true, false, true);
         pathTimer = new Timer();
         opModeTimer = new Timer();
 
@@ -69,8 +69,8 @@ public class RedBucket extends LinearOpMode {
 
         waitForStart();
         // Move to normal positions
-        while ((opModeInInit() || opModeIsActive()) && vision.visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING);
-        sleep(100);
+//        while ((opModeInInit() || opModeIsActive()) && vision.visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING);
+//        sleep(100);
         pathTimer.resetTimer();
         opModeTimer.resetTimer();
         light.goToBlue();
@@ -85,7 +85,7 @@ public class RedBucket extends LinearOpMode {
             manualPanning();
             clawMovement();
             orientation();
-            vision();
+            //vision();
             slidePos();
             updateDistanceSensor();
             update();
@@ -118,14 +118,14 @@ public class RedBucket extends LinearOpMode {
             panningServo.moveDown();
             claw.openClaw();
         } else if (gamepad1.left_bumper) {
-            panningMotor.setTargetPos(0);
-            slides.setTargetPos(0);
-            while (panningMotor.getCurrentPos() > 100) {
-                update();
-            }
-            slides.setTargetPos(1500);
-            panningServo.moveDown();
-            claw.openClaw();
+            slides.runDown();
+            sleep(2000);
+            panningMotor.runDown();
+            sleep(2000);
+            slides.resetEncoder();
+            slides.setPower(0);
+            panningMotor.resetEncoder();
+            panningMotor.setPower(0);
         }
     }
 
@@ -162,10 +162,12 @@ public class RedBucket extends LinearOpMode {
             if ((dSensor.getDistance(DistanceUnit.CM) < 2.8)) {
                 slides.setTargetPos(0);
                 while (slides.getCurrentPos() > 25) {
-                    update();
+                    slides.updateSlide();
+                    slides.updatePower();
                 }
-                panningMotor.setTargetPos(1600);
-                while (panningMotor.getCurrentPos() < 1200) {update();}
+                panningMotor.runUp();
+                sleep(2000);
+                panningMotor.setPower(0);
                 panningServo.moveSpecific(0.55);
                 orientation.moveNormal();
                 slides.setTargetPos(2300);
@@ -181,35 +183,37 @@ public class RedBucket extends LinearOpMode {
             while (slides.getCurrentPos() > 1000) {
                 update();
             }
-            panningMotor.setTargetPos(0);
+            panningMotor.runDown();
+            sleep(2000);
+            panningMotor.setPower(0);
         }
     }
 
-    public void vision() {
-        if (gamepad2.a) {
-            if (!following) {
-                follower.setPose(new Pose(0,0, 0));
-                follower.updatePose();
-
-                double orientationPosition = vision.getOrientation();
-                double yMovement = vision.getyMovement();
-                double xMovement = vision.getxMovement();
-
-                idk = follower.pathBuilder()
-                        .addPath(new BezierLine(new Point(follower.getPose().getX(), follower.getPose().getY()), new Point(follower.getPose().getX() - yMovement, follower.getPose().getY() + xMovement)))
-                        .setConstantHeadingInterpolation(0)
-                        .setPathEndTranslationalConstraint(0.05)
-                        .setPathEndTValueConstraint(0.999)
-                        .setZeroPowerAccelerationMultiplier(2.5)
-                        .build();
-
-                orientation.moveSpecific(orientationPosition);
-                follower.followPath(idk);
-                pathTimer.resetTimer();
-                following = true;
-            }
-        }
-    }
+//    public void vision() {
+//        if (gamepad2.a) {
+//            if (!following) {
+//                follower.setPose(new Pose(0,0, 0));
+//                follower.updatePose();
+//
+//                double orientationPosition = vision.getOrientation();
+//                double yMovement = vision.getyMovement();
+//                double xMovement = vision.getxMovement();
+//
+//                idk = follower.pathBuilder()
+//                        .addPath(new BezierLine(new Point(follower.getPose().getX(), follower.getPose().getY()), new Point(follower.getPose().getX() - yMovement, follower.getPose().getY() + xMovement)))
+//                        .setConstantHeadingInterpolation(0)
+//                        .setPathEndTranslationalConstraint(0.05)
+//                        .setPathEndTValueConstraint(0.999)
+//                        .setZeroPowerAccelerationMultiplier(2.5)
+//                        .build();
+//
+//                orientation.moveSpecific(orientationPosition);
+//                follower.followPath(idk);
+//                pathTimer.resetTimer();
+//                following = true;
+//            }
+//        }
+//    }
 
     public void orientation() {
         if (gamepad2.b) {
@@ -221,9 +225,9 @@ public class RedBucket extends LinearOpMode {
     }
 
     public void update() {
-        if (opModeTimer.getElapsedTime() > 3000) {
-            vision.updateVision();
-        }
+//        if (opModeTimer.getElapsedTime() > 3000) {
+//            vision.updateVision();
+//        }
 
         if (following && pathTimer.getElapsedTime() > 500) {
             follower.startTeleopDrive();
@@ -232,6 +236,8 @@ public class RedBucket extends LinearOpMode {
 
         follower.setTeleOpMovementVectors(-gamepad1.left_stick_y * velocity, -gamepad1.left_stick_x * velocity, -gamepad1.right_stick_x * 0.4, true);
 
+        telemetry.addData("slides: ", slides.getCurrentPos());
+        telemetry.addData("panning: ", panningMotor.getCurrentPos());
         panningMotor.updatePanning();
         slides.updateSlide();
         slides.updatePower();

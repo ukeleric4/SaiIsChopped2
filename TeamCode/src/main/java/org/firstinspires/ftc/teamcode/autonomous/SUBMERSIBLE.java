@@ -31,25 +31,25 @@ public class SUBMERSIBLE extends LinearOpMode {
     public Orientation orientation;
     public Pitching pitching;
     public PanningServo panningServo;
-    public DistanceSensor dSensor;
-    public Light light;
+    //public DistanceSensor dSensor;
+    //public Light light;
 
-    private Timer pathTimer, opmodeTimer;
+    private Timer pathTimer, opmodeTimer, waitTimer;
     int score = 1700;
     int pick = 0;
 
     double panningScore = 0.9;
-    double panningPick = 0.45;
+    double panningPick = 0.6;
 
-    int slideScore = 950;
-    int slideStart = 1100;
+    int slideScore = 1000;
+    int slideStart = 1150;
     int slidePickUp = 600;
 
     private Follower follower;
     private final Pose startPose = new Pose(134.937, 78.948, Math.toRadians(0));
 
-    private PathChain hangFirst, pushTwo, pushLast, longHang, longBack,
-                      hang, back, entireThing, backFast;
+    private PathChain hangFirst, pushTwo, pushLast, longHang,
+                      hang, back, entireThing;
 
     private int pathState;
 
@@ -72,9 +72,9 @@ public class SUBMERSIBLE extends LinearOpMode {
                 }
                 break;
             case 1:
-                if (follower.atParametricEnd()) {
+                if (follower.getCurrentTValue() > 0.9) {
                     slides.setTargetPos(0);
-                    while (slides.getCurrentPos() > 650) {
+                    while (slides.getCurrentPos() > 350) {
                         slides.updateSlide();
                         slides.updatePower();
                         follower.update();
@@ -94,13 +94,13 @@ public class SUBMERSIBLE extends LinearOpMode {
                 }
                 break;
             case 3:
-                if (pathTimer.getElapsedTime() > 500) {
+                if (pathTimer.getElapsedTime() > 550) {
                     claw.openClaw();
                     setPathState(5);
                 }
                 break;
             case 5:
-                if (follower.atParametricEnd() || follower.isRobotStuck()) {
+                if (follower.getCurrentTValue() > 0.925) {
                     follower.breakFollowing();
                     claw.closeClaw();
                     sleep(100);
@@ -113,154 +113,32 @@ public class SUBMERSIBLE extends LinearOpMode {
                 }
                 break;
             case 6:
-                if (follower.atParametricEnd()) {
+                if (follower.getCurrentTValue() > 0.9) {
                     slides.setTargetPos(0);
-                    while (slides.getCurrentPos() > 650) {
-                        slides.updateSlide();
-                        slides.updatePower();
-                        follower.update();
+                    while (slides.getCurrentPos() > 350) {
+                        updateImportant();
                     }
+                    follower.followPath(back);
                     claw.openClaw();
-                    follower.followPath(longBack);
                     orientation.moveNormal();
-                    panning.setTargetPos(pick);
+                    panning.setTargetPos(0);
+                    panningServo.moveSpecific(0.55);
+                    pathTimer.resetTimer();
                     setPathState(7);
                 }
                 break;
             case 7:
-                if (pathTimer.getElapsedTime() > 500) {
-                    claw.closeClaw();
-                    panningServo.moveSpecific(panningPick);
-                    setPathState(8);
-                }
-                break;
-            case 8:
-                if (pathTimer.getElapsedTime() > 500) {
-                    claw.openClaw();
-                    setPathState(9);
-                }
-                break;
-            case 9:
-                if (follower.atParametricEnd() || follower.isRobotStuck()) {
+                if (follower.getCurrentTValue() > 0.9) {
                     follower.breakFollowing();
+                    sleep(150);
                     claw.closeClaw();
-                    sleep(100);
-                    panningServo.moveSpecific(panningScore);
-                    orientation.moveOpposite();
+                    waitTimer(200);
                     follower.followPath(hang);
-                    panning.setTargetPos(score);
-                    slides.setTargetPos(slideScore);
-                    setPathState(10);
-                }
-                break;
-            case 10:
-                if (follower.atParametricEnd()) {
-                    slides.setTargetPos(0);
-                    while (slides.getCurrentPos() > 650) {
-                        slides.updateSlide();
-                        slides.updatePower();
-                        follower.update();
-                    }
-                    claw.openClaw();
-                    follower.followPath(back);
-                    orientation.moveNormal();
-                    panning.setTargetPos(pick);
-                    setPathState(11);
-                }
-                break;
-            case 11:
-                if (pathTimer.getElapsedTime() > 500) {
-                    claw.closeClaw();
-                    panningServo.moveSpecific(panningPick);
-                    setPathState(12);
-                }
-                break;
-            case 12:
-                if (pathTimer.getElapsedTime() > 500) {
-                    claw.openClaw();
-                    setPathState(13);
-                }
-                break;
-            case 13:
-                if (follower.atParametricEnd() || follower.isRobotStuck()) {
-                    follower.breakFollowing();
-                    claw.closeClaw();
-                    sleep(100);
-                    panningServo.moveSpecific(panningScore);
                     orientation.moveOpposite();
-                    follower.followPath(hang);
-                    panning.setTargetPos(score);
-                    slides.setTargetPos(slideScore);
-                    setPathState(14);
-                }
-                break;
-            case 14:
-                if (follower.atParametricEnd()) {
-                    slides.setTargetPos(0);
-                    while (slides.getCurrentPos() > 650) {
-                        slides.updateSlide();
-                        slides.updatePower();
-                        follower.update();
-                    }
-                    claw.openClaw();
-                    follower.followPath(back);
-                    orientation.moveNormal();
-                    panning.setTargetPos(pick);
-                    setPathState(15);
-                }
-                break;
-            case 15:
-                if (pathTimer.getElapsedTime() > 500) {
-                    claw.closeClaw();
-                    panningServo.moveSpecific(panningPick);
-                    setPathState(16);
-                }
-                break;
-            case 16:
-                if (pathTimer.getElapsedTime() > 500) {
-                    claw.openClaw();
-                    setPathState(17);
-                }
-                break;
-            case 17:
-                if (follower.atParametricEnd() || follower.isRobotStuck()) {
-                    follower.breakFollowing();
-                    claw.closeClaw();
-                    sleep(100);
-                    panningServo.moveSpecific(panningScore);
-                    orientation.moveOpposite();
-                    follower.followPath(hang);
-                    panning.setTargetPos(score);
-                    slides.setTargetPos(slideScore);
-                    setPathState(18);
-                }
-                break;
-            case 18:
-                if (follower.atParametricEnd()) {
-                    slides.setTargetPos(0);
-                    while (slides.getCurrentPos() > 550) {
-                        slides.updateSlide();
-                        slides.updatePower();
-                        follower.update();
-                    }
-                    claw.openClaw();
-                    follower.followPath(back);
-                    orientation.moveNormal();
-                    panning.setTargetPos(pick);
-                    setPathState(19);
-                }
-                break;
-            case 19:
-                if (pathTimer.getElapsedTime() > 500) {
-                    claw.closeClaw();
-                    panningServo.moveSpecific(panningPick);
-                    setPathState(20);
-                }
-                break;
-            case 20:
-                if (pathTimer.getElapsedTime() > 500) {
-                    claw.openClaw();
-                    setPathState(21);
+                    panningServo.moveSpecific(0.9);
+                    panning.setTargetPos(1800);
+                    slides.setTargetPos(850);
+                    setPathState(6);
                 }
                 break;
         }
@@ -277,7 +155,7 @@ public class SUBMERSIBLE extends LinearOpMode {
                         // Line 1
                         new BezierLine(
                                 new Point(134.937, 78.948, Point.CARTESIAN),
-                                new Point(108.151, 78.747, Point.CARTESIAN)
+                                new Point(112.985, 78.948, Point.CARTESIAN)
                         )
                 )
                 .setConstantHeadingInterpolation(Math.toRadians(0))
@@ -324,7 +202,7 @@ public class SUBMERSIBLE extends LinearOpMode {
                         new BezierCurve(
                                 new Point(115.603, 127.888, Point.CARTESIAN),
                                 new Point(84.587, 127.888, Point.CARTESIAN),
-                                new Point(87.206, 137.152, Point.CARTESIAN)
+                                new Point(87.206, 135.743, Point.CARTESIAN)
                         )
                 )
                 .setConstantHeadingInterpolation(Math.toRadians(0)).build();
@@ -332,8 +210,8 @@ public class SUBMERSIBLE extends LinearOpMode {
                 .addPath(
                         // Line 7
                         new BezierLine(
-                                new Point(87.206, 137.152, Point.CARTESIAN),
-                                new Point(129.902, 137.152, Point.CARTESIAN)
+                                new Point(87.206, 135.743, Point.CARTESIAN),
+                                new Point(132.319, 135.944, Point.CARTESIAN)
                         )
                 )
                 .setConstantHeadingInterpolation(Math.toRadians(0))
@@ -342,57 +220,39 @@ public class SUBMERSIBLE extends LinearOpMode {
                 .addPath(
                         // Line 8
                         new BezierCurve(
-                                new Point(129.902, 137.152, Point.CARTESIAN),
-                                new Point(121.242, 44.509, Point.CARTESIAN),
-                                new Point(106.943, 76.129, Point.CARTESIAN)
+                                new Point(132.319, 135.944, Point.CARTESIAN),
+                                new Point(127.485, 71.295, Point.CARTESIAN),
+                                new Point(112.380, 87.004, Point.CARTESIAN),
+                                new Point(113.186, 79.150, Point.CARTESIAN)
                         )
                 )
                 .setConstantHeadingInterpolation(Math.toRadians(0))
-                .setZeroPowerAccelerationMultiplier(2.5).build();
-        longBack = follower.pathBuilder()
-                .addPath(
-                        // Line 9
-                        new BezierCurve(
-                                new Point(106.943, 76.129, Point.CARTESIAN),
-                                new Point(117.415, 101.706, Point.CARTESIAN),
-                                new Point(131.513, 108.755, Point.CARTESIAN)
-                        )
-                )
-                .setConstantHeadingInterpolation(Math.toRadians(0))
-                .setZeroPowerAccelerationMultiplier(1.5).build();
+                .build();
         hang = follower.pathBuilder()
                 .addPath(
                         // Line 10
                         new BezierCurve(
-                                new Point(131.513, 108.755, Point.CARTESIAN),
-                                new Point(118.624, 48.738, Point.CARTESIAN),
-                                new Point(106.943, 73.108, Point.CARTESIAN)
+                                new Point(133.527, 116.006, Point.CARTESIAN),
+                                new Point(124.800, 80.718, Point.CARTESIAN),
+                                new Point(111.978, 85.594, Point.CARTESIAN),
+                                new Point(113.186, 78.948, Point.CARTESIAN)
                         )
                 )
                 .setConstantHeadingInterpolation(Math.toRadians(0))
-                .setZeroPowerAccelerationMultiplier(2.5).build();
+                .build();
         back = follower.pathBuilder()
                 .addPath(
-                        // Line 11
+                        // Line 9
                         new BezierCurve(
-                                new Point(106.943, 73.108, Point.CARTESIAN),
-                                new Point(116.006, 101.303, Point.CARTESIAN),
-                                new Point(131.513, 108.957, Point.CARTESIAN)
+                                new Point(113.186, 79.150, Point.CARTESIAN),
+                                new Point(121.861, 80.131, Point.CARTESIAN),
+                                new Point(108.554, 115.200, Point.CARTESIAN),
+                                new Point(133.527, 116.006, Point.CARTESIAN)
                         )
                 )
                 .setConstantHeadingInterpolation(Math.toRadians(0))
-                .setZeroPowerAccelerationMultiplier(1.5).build();
-        backFast = follower.pathBuilder()
-                .addPath(
-                        // Line 11
-                        new BezierCurve(
-                                new Point(107.748, 74.115, Point.CARTESIAN),
-                                new Point(116.006, 101.303, Point.CARTESIAN),
-                                new Point(131.513, 108.957, Point.CARTESIAN)
-                        )
-                )
-                .setConstantHeadingInterpolation(Math.toRadians(0))
-                .setZeroPowerAccelerationMultiplier(10).build();
+                .setZeroPowerAccelerationMultiplier(0.8)
+                .build();
 
 
         entireThing = follower.pathBuilder()
@@ -503,8 +363,8 @@ public class SUBMERSIBLE extends LinearOpMode {
         pitching = new Pitching(hardwareMap);
         orientation = new Orientation(hardwareMap);
         panningServo = new PanningServo(hardwareMap);
-        dSensor =  hardwareMap.get(DistanceSensor.class, "distance");
-        light = new Light(hardwareMap);
+        //dSensor =  hardwareMap.get(DistanceSensor.class, "distance");
+        //light = new Light(hardwareMap);
 
         // Set up follower
         Constants.setConstants(FConstants.class, LConstants.class);
@@ -513,6 +373,7 @@ public class SUBMERSIBLE extends LinearOpMode {
 
         pathTimer = new Timer();
         opmodeTimer = new Timer();
+        waitTimer = new Timer();
 
         // Place parts in initial positions
         claw.closeClaw(); // Closed claw
@@ -521,7 +382,7 @@ public class SUBMERSIBLE extends LinearOpMode {
 
         panning.setTargetPos(370);
         slides.setTargetPos(0);
-        light.goToBlue();
+        //light.goToBlue();
 
         // Set path state to initial
         setPathState(0);
@@ -537,6 +398,7 @@ public class SUBMERSIBLE extends LinearOpMode {
         waitForStart();
         follower.setPose(startPose);
         opmodeTimer.resetTimer();
+        waitTimer.resetTimer();
 
         while (opModeIsActive()) {
             autonomousPathUpdate();
@@ -556,5 +418,17 @@ public class SUBMERSIBLE extends LinearOpMode {
             telemetry.addData("Slide pos: ", slides.getCurrentPos());
             telemetry.update();
         }
+    }
+
+    public void updateImportant() {
+        panning.updatePanning();
+        slides.updateSlide();
+        slides.updatePower();
+        follower.update();
+    }
+
+    public void waitTimer(int timeMs) {
+        waitTimer.resetTimer();
+        while (waitTimer.getElapsedTime() < timeMs) {}
     }
 }

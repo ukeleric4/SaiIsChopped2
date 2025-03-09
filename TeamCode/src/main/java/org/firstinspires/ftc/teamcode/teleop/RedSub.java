@@ -2,13 +2,18 @@ package org.firstinspires.ftc.teamcode.teleop;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.localization.Pose;
+import com.pedropathing.pathgen.BezierCurve;
 import com.pedropathing.pathgen.BezierLine;
 import com.pedropathing.pathgen.PathChain;
 import com.pedropathing.pathgen.Point;
 import com.pedropathing.util.Constants;
 import com.pedropathing.util.Timer;
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -32,20 +37,44 @@ public class RedSub extends LinearOpMode {
     private Orientation orientation;
     private PanningServo panningServo;
     private Pitching pitching;
+    private Limelight3A limelight;
     private Light light;
-    private DistanceSensor dSensor;
 
     private double velocity = 0.6;
+    private double headingVelocity = 0.4;
 
     private Follower follower;
     private final Pose startPose = new Pose(0, 0, 0);
-    PathChain idk;
+    private final Pose hangPose = new Pose(131, 120, 0);
+    PathChain autoPlace;
+    PathChain autoPlaceBack;
 
-    Vision vision;
-
-    Timer pathTimer;
+    Timer pathTimer1;
+    Timer pathTimer2;
     Timer opModeTimer;
     boolean following = false;
+    LLResult result;
+
+    boolean autoPlacing = false;
+    int autoPlaceNum = 0;
+
+    DcMotor fl;
+    DcMotor fr;
+    DcMotor bl;
+    DcMotor br;
+
+    double offsetX;
+    double offsetY;
+    double[] pythonResults;
+    double uhorientation;
+    double power = 0;
+
+    boolean depositDown = true;
+    double powerSlide;
+
+    Timer followerTime;
+    Timer waitTimer;
+    int targetPosition = 1250;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -55,40 +84,84 @@ public class RedSub extends LinearOpMode {
         orientation = new Orientation(hardwareMap);
         panningServo = new PanningServo(hardwareMap);
         pitching = new Pitching(hardwareMap);
-        dSensor = hardwareMap.get(DistanceSensor.class, "distance");
+        limelight = hardwareMap.get(Limelight3A.class, "limelight");
         light = new Light(hardwareMap);
 
-        vision = new Vision(hardwareMap, telemetry, true, false, true);
-        pathTimer = new Timer();
+        fl = hardwareMap.get(DcMotor.class, "fl");
+        fr = hardwareMap.get(DcMotor.class, "fr");
+        bl = hardwareMap.get(DcMotor.class, "bl");
+        br = hardwareMap.get(DcMotor.class, "br");
+
+        fl.setDirection(DcMotorSimple.Direction.FORWARD);
+        bl.setDirection(DcMotorSimple.Direction.FORWARD);
+        fr.setDirection(DcMotorSimple.Direction.REVERSE);
+        br.setDirection(DcMotorSimple.Direction.REVERSE);
+
+        pathTimer1 = new Timer();
+        pathTimer2 = new Timer();
         opModeTimer = new Timer();
+        followerTime = new Timer();
+        waitTimer = new Timer();
 
         Constants.setConstants(FConstants.class, LConstants.class);
         follower = new Follower(hardwareMap);
         follower.setStartingPose(startPose);
         follower.startTeleopDrive();
+        limelight.pipelineSwitch(0);
+        limelight.start();
+
+        autoPlace = follower.pathBuilder()
+                .addPath(
+                        // Line 10
+                        new BezierCurve(
+                                new Point(133.527, 116.006, Point.CARTESIAN),
+                                new Point(124.800, 80.718, Point.CARTESIAN),
+                                new Point(111.978, 85.594, Point.CARTESIAN),
+                                new Point(113.186, 78.948, Point.CARTESIAN)
+                        )
+                )
+                .setConstantHeadingInterpolation(Math.toRadians(0))
+                .setZeroPowerAccelerationMultiplier(8)
+                .build();
+
+        autoPlaceBack = follower.pathBuilder()
+                .addPath(
+                        // Line 9
+                        new BezierCurve(
+                                new Point(113.186, 79.150, Point.CARTESIAN),
+                                new Point(121.861, 80.131, Point.CARTESIAN),
+                                new Point(108.554, 115.200, Point.CARTESIAN),
+                                new Point(133.527, 116.006, Point.CARTESIAN)
+                        )
+                )
+                .setConstantHeadingInterpolation(Math.toRadians(0))
+                .setZeroPowerAccelerationMultiplier(2)
+                .build();
 
         waitForStart();
-        // Move to normal positions
-        while ((opModeInInit() || opModeIsActive()) && vision.visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING);
-        sleep(100);
-        pathTimer.resetTimer();
+        pathTimer1.resetTimer();
+        pathTimer2 = new Timer();
         opModeTimer.resetTimer();
-        light.goToBlue();
+        followerTime.resetTimer();
+        waitTimer.resetTimer();
+        light.goToWhite();
         pitching.moveUp();
         claw.openClaw();
         panningServo.moveDown();
-        orientation.moveNormal();
+        orientation.moveOpposite();
 
         while (opModeIsActive()) {
+            result = limelight.getLatestResult();
             updateVelocity();
             pitching();
             manualPanning();
             clawMovement();
             orientation();
             specimenPositions();
-            vision();
+            hanging();
             slidePos();
-            updateDistanceSensor();
+            sampleControl();
+            updateLimelight();
             update();
             telemetry.update();
         }
@@ -122,39 +195,115 @@ public class RedSub extends LinearOpMode {
             slides.setTargetPos(1200);
             claw.closeClaw();
             panningServo.moveSpecific(0.45);
+        } else if (gamepad2.a) {
+            slides.setTargetPos(1200);
+            claw.openClaw();
+            panningServo.moveSpecific(0.45);
         }
     }
 
     public void specimenPositions() {
         if (gamepad2.left_stick_button) {
             slides.setTargetPos(0);
-            while (slides.getCurrentPos() > 650) {
+            while (slides.getCurrentPos() > 350) {
                 update();
             }
             claw.openClaw();
             orientation.moveNormal();
             panningMotor.setTargetPos(0);
-            panningServo.moveSpecific(0.45);
+            panningServo.moveSpecific(0.6);
         }
         if (gamepad2.right_stick_button) {
             claw.closeClaw();
-            sleep(250);
-            orientation.moveOpposite();
-            panningServo.moveSpecific(0.9);
-            panningMotor.setTargetPos(1700);
-            slides.setTargetPos(1000);
+            waitTimer(250);
+            follower.setPose(hangPose);
+            autoPlacing = true;
+            while (!gamepad1.b) {
+                runAutoPlacement();
+                updateImportant();
+            }
+            autoPlaceNum = 0;
+            follower.breakFollowing();
+            follower.startTeleopDrive();
         }
     }
 
-    public void updateDistanceSensor() {
-        double distance = dSensor.getDistance(DistanceUnit.CM);
-        if (distance > 2.8) {
-            light.goToRed();
-        } else if (distance < 2.8) {
-            light.goToBlue();
-        } else {
-            light.goToRed();
+    public void sampleControl() {
+        if (gamepad2.right_bumper && gamepad2.dpad_up && depositDown) {
+            slides.setTargetPos(0);
+            while (slides.getCurrentPos() > 100) {
+                updateImportant();
+            }
+            panningMotor.setTargetPos(1800);
+            while (panningMotor.getCurrentPos() < 1200) {
+                updateImportant();
+            }
+            slides.setTargetPos(2300);
+            panningServo.moveSpecific(0.6);
+            depositDown = false;
         }
+
+        if (gamepad2.right_bumper && gamepad2.dpad_up && !depositDown) {
+            claw.openClaw();
+            waitTimer(300);
+            panningServo.moveDown();
+            waitTimer(200);
+            slides.setTargetPos(0);
+            while (slides.getCurrentPos() > 100) {
+                updateImportant();
+            }
+            panningMotor.setTargetPos(0);
+            while (panningMotor.getCurrentPos() > 200) {
+                updateImportant();
+            }
+            depositDown = true;
+        }
+    }
+
+    public void runAutoPlacement() {
+        switch (autoPlaceNum) {
+            case 0:
+                follower.followPath(autoPlace);
+                orientation.moveOpposite();
+                panningServo.moveSpecific(0.9);
+                panningMotor.setTargetPos(1800);
+                slides.setTargetPos(850);
+                setPathState(1);
+                break;
+            case 1:
+                if (follower.getCurrentTValue() > 0.7) {
+                    slides.setTargetPos(0);
+                    while (slides.getCurrentPos() > 350) {
+                        updateImportant();
+                    }
+                    follower.followPath(autoPlaceBack);
+                    claw.openClaw();
+                    orientation.moveNormal();
+                    panningMotor.setTargetPos(0);
+                    panningServo.moveSpecific(0.6);
+                    setPathState(2);
+                }
+                break;
+            case 2:
+                if (follower.getCurrentTValue() > 0.95) {
+                    follower.breakFollowing();
+                    sleep(250);
+                    claw.closeClaw();
+                    waitTimer(200);
+                    follower.followPath(autoPlace);
+                    orientation.moveOpposite();
+                    panningServo.moveSpecific(0.9);
+                    panningMotor.setTargetPos(1800);
+                    slides.setTargetPos(850);
+                    setPathState(1);
+                }
+                break;
+        }
+    }
+
+    public void setPathState(int pState) {
+        autoPlaceNum = pState;
+        pathTimer2.resetTimer();
     }
 
     public void manualPanning() {
@@ -169,21 +318,22 @@ public class RedSub extends LinearOpMode {
         if (gamepad2.dpad_down) {
             follower.breakFollowing();
             pitching.moveDown();
-            sleep(400);
+            waitTimer(400);
             claw.closeClaw();
-            sleep(250);
+            waitTimer(250);
             pitching.moveUp();
-            sleep(500);
+            waitTimer(500);
             follower.startTeleopDrive();
             follower.setTeleOpMovementVectors(-gamepad1.left_stick_y * velocity, -gamepad1.left_stick_x * velocity, -gamepad1.right_stick_x * 0.4, true);
-            if ((dSensor.getDistance(DistanceUnit.CM) < 2.8)) {
-                slides.setTargetPos(0);
-            } else {
-                claw.openClaw();
-            }
-        } else if (gamepad2.dpad_up) {
+            orientation.moveOpposite();
+            panningServo.moveSpecific(0.45);
+            waitTimer(200);
+            slides.setTargetPos(0);
+        }
+
+        if (gamepad2.dpad_up && !gamepad2.right_bumper) {
             claw.openClaw();
-            sleep(300);
+            waitTimer(300);
             panningServo.moveDown();
             slides.setTargetPos(0);
             while (slides.getCurrentPos() > 1000) {
@@ -193,56 +343,127 @@ public class RedSub extends LinearOpMode {
         }
     }
 
-    public void vision() {
-        if (gamepad2.a) {
-            if (!following) {
-                follower.setPose(new Pose(0,0, 0));
-                follower.updatePose();
-
-                double orientationPosition = vision.getOrientation();
-                double yMovement = vision.getyMovement();
-                double xMovement = vision.getxMovement();
-
-                idk = follower.pathBuilder()
-                        .addPath(new BezierLine(new Point(follower.getPose().getX(), follower.getPose().getY()), new Point(follower.getPose().getX() - yMovement, follower.getPose().getY() + xMovement)))
-                        .setConstantHeadingInterpolation(0)
-                        .setPathEndTranslationalConstraint(0.05)
-                        .setPathEndTValueConstraint(0.999)
-                        .setZeroPowerAccelerationMultiplier(2.5)
-                        .build();
-
-                orientation.moveSpecific(orientationPosition);
-                follower.followPath(idk);
-                pathTimer.resetTimer();
-                following = true;
-            }
-        }
-    }
-
     public void orientation() {
         if (gamepad2.b) {
-            orientation.moveNormal();
+            orientation.moveOpposite();
         }
         if (gamepad2.x) {
             orientation.moveSideways();
         }
     }
 
-    public void update() {
-        if (opModeTimer.getElapsedTime() > 3000) {
-            vision.updateVision();
+    public void hanging() {
+        if (gamepad1.dpad_left && gamepad2.dpad_left) {
+            slides.setTargetPos(2300);
+            panningMotor.setTargetPos(1800);
         }
-
-        if (following && pathTimer.getElapsedTime() > 500) {
-            follower.startTeleopDrive();
-            following = false;
+        if (gamepad1.dpad_right && gamepad2.dpad_right) {
+            slides.setTargetPos(1800);
         }
+    }
 
-        follower.setTeleOpMovementVectors(-gamepad1.left_stick_y * velocity, -gamepad1.left_stick_x * velocity, -gamepad1.right_stick_x * 0.4, true);
-
+    public void updateImportant() {
         panningMotor.updatePanning();
         slides.updateSlide();
         slides.updatePower();
         follower.update();
+    }
+
+    public void update() {
+        if (claw.getPosition() == 1.0) {
+            headingVelocity = 1.0;
+        } else {
+            headingVelocity = 0.8;
+        }
+
+        if (following && pathTimer1.getElapsedTime() > 500) {
+            follower.startTeleopDrive();
+            following = false;
+        }
+
+        follower.setTeleOpMovementVectors(-gamepad1.left_stick_y * velocity, -gamepad1.left_stick_x * velocity, -gamepad1.right_stick_x * headingVelocity, true);
+
+        if (panningMotor.getTargetPos() == 0 && panningMotor.getCurrentPos() < 100) {
+            panningMotor.setPower(0);
+        } else {
+            panningMotor.updatePanning();
+        }
+
+        if (slides.getTargetPos() == 0 && slides.getCurrentPos() < 100) {
+            slides.setPower(0);
+        } else {
+            slides.updateSlide();
+            slides.updatePower();
+        }
+
+        telemetry.addData("current pos: ", slides.getCurrentPos());
+        telemetry.update();
+        follower.update();
+    }
+
+
+    public void updateLimelight() {
+        if (result != null) {
+            updateResults();
+            if (gamepad1.a) {
+                panningServo.moveSpecific(0.5);
+                limelight.pipelineSwitch(0);
+                followerTime.resetTimer();
+                while (followerTime.getElapsedTime() < 750) {
+                    updateResults();
+                    slides.setTargetPos(slides.getCurrentPos() + targetPosition);
+                    orientation.moveSpecific(uhorientation);
+                    slides.updateSlide();
+                    slides.updatePower();
+                    strafe(power);
+                }
+                slides.setPower(0);
+                strafe(0);
+                panningServo.moveDown();
+                waitTimer(300);
+                pitching.moveDown();
+                waitTimer(200);
+                claw.closeClaw();
+                waitTimer(300);
+                pitching.moveUp();
+                panningServo.moveSpecific(0.45);
+                slides.setTargetPos(0);
+            }
+        }
+    }
+
+    public void strafe(double power) {
+        fl.setPower(power);
+        br.setPower(power);
+        fr.setPower(-power);
+        bl.setPower(-power);
+    }
+
+    public void updateResults() {
+        limelight.pipelineSwitch(0);
+        result = limelight.getLatestResult();
+        offsetX = result.getTx();
+        offsetY = result.getTy();
+        if (offsetX < -1 || offsetX > 1) {
+            if (offsetX > 6 || offsetX < -6) {
+                power = (offsetX) / 50;
+            } else {
+                power = (offsetX) / 22.5;
+            }
+        } else {
+            power = 0;
+        }
+        targetPosition = (int) ((-10 + offsetY) * 5);
+
+        pythonResults = result.getPythonOutput();
+        uhorientation = pythonResults[6];
+
+        telemetry.addData("offsetX: ", offsetX);
+        telemetry.addData("offsetY: ", offsetY);
+    }
+
+    public void waitTimer(int timeMs) {
+        waitTimer.resetTimer();
+        while (waitTimer.getElapsedTime() < timeMs) {}
     }
 }

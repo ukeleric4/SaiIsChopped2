@@ -35,6 +35,26 @@ public class PIDFPanning {
         motor1.setPower(power);
     }
 
+    public void resetEncoder() {
+        motor1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+    }
+
+    public void setPower(double power) {
+        motor1.setPower(power);
+    }
+
+    public void runDown() {
+        motor1.setPower(-1);
+    }
+
+    public void runUp() {
+        motor1.setPower(1);
+    }
+
+    public int getTargetPos() {
+        return target;
+    }
+
     public void setTargetPos(int targetPos) {
         target = (int) (targetPos + offset);
     }

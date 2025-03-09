@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.parts;
 
 import com.arcrobotics.ftclib.controller.PIDController;
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
@@ -42,6 +43,20 @@ public class PIDFSlide {
     public void setPower(double power) {
         motor1.setPower(power);
         motor2.setPower(power);
+    }
+
+    public void resetEncoder() {
+        motor2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+    }
+
+    public void runDown() {
+        motor2.setPower(-1);
+        motor1.setPower(-1);
+    }
+
+    public void runUp() {
+        motor2.setPower(1);
+        motor1.setPower(1);
     }
 
     public void setTargetPos(int targetPos) {

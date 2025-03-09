@@ -17,8 +17,6 @@ import org.firstinspires.ftc.teamcode.parts.Vision;
 public class PIDFSlideTest extends LinearOpMode {
     private PIDController controller;
 
-    Vision vision;
-
     public static double p = 0.02, i = 0, d = 0.000001;
     public static double f = 0.04;
 
@@ -32,8 +30,6 @@ public class PIDFSlideTest extends LinearOpMode {
     public void runOpMode() throws InterruptedException {
         waitForStart();
         controller = new PIDController(p, i, d);
-
-        vision = new Vision(hardwareMap, telemetry);
 
 
         motor1 = hardwareMap.get(DcMotorEx.class, "slide1");
@@ -49,8 +45,6 @@ public class PIDFSlideTest extends LinearOpMode {
 
             motor1.setPower(power);
             motor2.setPower(power);
-
-            vision.updateVision();
 
             telemetry.addData("position: ", motor2.getCurrentPosition());
             telemetry.addData("target: ", target);

@@ -41,7 +41,7 @@ public class BlueBucket extends LinearOpMode {
     private final Pose startPose = new Pose(0, 0, 0);
     PathChain idk;
 
-    org.firstinspires.ftc.teamcode.vision.Vision vision;
+    Vision vision;
 
     Timer pathTimer;
     Timer opModeTimer;
@@ -118,14 +118,14 @@ public class BlueBucket extends LinearOpMode {
             panningServo.moveDown();
             claw.openClaw();
         } else if (gamepad1.left_bumper) {
-            panningMotor.setTargetPos(0);
-            slides.setTargetPos(0);
-            while (panningMotor.getCurrentPos() > 100) {
-                update();
-            }
-            slides.setTargetPos(1500);
-            panningServo.moveDown();
-            claw.openClaw();
+            slides.runDown();
+            sleep(2000);
+            panningMotor.runDown();
+            sleep(2000);
+            slides.resetEncoder();
+            slides.setPower(0);
+            panningMotor.resetEncoder();
+            panningMotor.setPower(0);
         }
     }
 
@@ -232,6 +232,8 @@ public class BlueBucket extends LinearOpMode {
 
         follower.setTeleOpMovementVectors(-gamepad1.left_stick_y * velocity, -gamepad1.left_stick_x * velocity, -gamepad1.right_stick_x * 0.4, true);
 
+        telemetry.addData("slides: ", slides.getCurrentPos());
+        telemetry.addData("panning: ", panningMotor.getCurrentPos());
         panningMotor.updatePanning();
         slides.updateSlide();
         slides.updatePower();

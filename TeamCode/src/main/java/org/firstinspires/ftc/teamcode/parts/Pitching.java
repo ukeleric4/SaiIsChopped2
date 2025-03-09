@@ -11,11 +11,11 @@ public class Pitching {
     }
 
     public void moveUp() {
-        pitching.setPosition(0);
+        pitching.setPosition(1.0);
     }
 
     public void moveDown() {
-        pitching.setPosition(1.0);
+        pitching.setPosition(0);
     }
 
     public void moveSpecific(double pos) {

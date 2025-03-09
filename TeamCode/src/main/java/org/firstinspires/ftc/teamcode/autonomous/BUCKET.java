@@ -31,8 +31,8 @@ public class BUCKET extends LinearOpMode {
     public Orientation orientation;
     public Pitching pitching;
     public PanningServo panningServo;
-    public DistanceSensor dSensor;
-    public Light light;
+    //public DistanceSensor dSensor;
+    //public Light light;
 
     private Timer pathTimer, opmodeTimer;
 
@@ -73,16 +73,31 @@ public class BUCKET extends LinearOpMode {
                 break;
             case 3:
                 if (pathTimer.getElapsedTime() > 1000) {
+                    panningServo.moveUp();
                     panningServo.moveDown();
                     sleep(300);
                     follower.followPath(pickup1, true);
-                    slides.setTargetPos(700);
-                    while (slides.getCurrentPos() > 800) {
+                    slides.setTargetPos(0);
+                    while (slides.getCurrentPos() > 100) {
                         slides.updateSlide();
                         slides.updatePower();
+                        panning.updatePanning();
                         follower.update();
                     }
                     panning.setTargetPos(0);
+                    while (panning.getCurrentPos() > 200) {
+                        slides.updateSlide();
+                        slides.updatePower();
+                        panning.updatePanning();
+                        follower.update();
+                    }
+                    slides.setTargetPos(600);
+                    while (slides.getCurrentPos() < 550) {
+                        slides.updateSlide();
+                        slides.updatePower();
+                        panning.updatePanning();
+                        follower.update();
+                    }
                     setPathState(4);
                 }
                 break;
@@ -96,11 +111,15 @@ public class BUCKET extends LinearOpMode {
                 }
                 break;
             case 5:
-                if (pathTimer.getElapsedTime() > 200) {
+                if (pathTimer.getElapsedTime() > 400) {
                     pitching.moveUp();
                     follower.followPath(bucket1);
-                    slides.setTargetPos(2300);
                     panning.setTargetPos(1700);
+                    while (panning.getCurrentPos() < 1500) {
+                        panning.updatePanning();
+                        follower.update();
+                    }
+                    slides.setTargetPos(2300);
                     setPathState(7);
                 }
                 break;
@@ -122,13 +141,28 @@ public class BUCKET extends LinearOpMode {
                     panningServo.moveDown();
                     sleep(300);
                     follower.followPath(pickup2, true);
-                    slides.setTargetPos(700);
-                    while (slides.getCurrentPos() > 800) {
+                    slides.setTargetPos(0);
+                    while (slides.getCurrentPos() > 100) {
                         slides.updateSlide();
                         slides.updatePower();
+                        panning.updatePanning();
                         follower.update();
                     }
                     panning.setTargetPos(0);
+                    while (panning.getCurrentPos() > 200) {
+                        slides.updateSlide();
+                        slides.updatePower();
+                        panning.updatePanning();
+                        follower.update();
+                    }
+                    slides.setTargetPos(600);
+                    while (slides.getCurrentPos() < 600) {
+                        slides.updateSlide();
+                        slides.updatePower();
+                        panning.updatePanning();
+                        follower.update();
+                    }
+                    pitching.moveDown();
                     setPathState(9);
                 }
                 break;
@@ -151,13 +185,18 @@ public class BUCKET extends LinearOpMode {
                         follower.update();
                     }
                     slides.setTargetPos(2300);
+                    setPathState(12);
                 }
                 break;
             case 12:
                 if (slides.getCurrentPos() > 2100) {
                     // Move servos
                     panningServo.moveSpecific(0.45);
-                    sleep(500);
+                    setPathState(789);
+                }
+                break;
+            case 789:
+                if (pathTimer.getElapsedTime() > 500 && !follower.isBusy()) {
                     claw.openClaw();
                     setPathState(13);
                 }
@@ -167,6 +206,71 @@ public class BUCKET extends LinearOpMode {
                     panningServo.moveDown();
                     sleep(300);
                     follower.followPath(pickup3, true);
+                    slides.setTargetPos(0);
+                    while (slides.getCurrentPos() > 100) {
+                        slides.updateSlide();
+                        slides.updatePower();
+                        panning.updatePanning();
+                        follower.update();
+                    }
+                    panning.setTargetPos(0);
+                    while (panning.getCurrentPos() > 200) {
+                        slides.updateSlide();
+                        slides.updatePower();
+                        panning.updatePanning();
+                        follower.update();
+                    }
+                    slides.setTargetPos(700);
+                    while (slides.getCurrentPos() < 600) {
+                        slides.updateSlide();
+                        slides.updatePower();
+                        panning.updatePanning();
+                        follower.update();
+                    }
+                    setPathState(14);
+                }
+                break;
+            case 14:
+                if (!follower.isBusy()) {
+                    // Add servo movements
+                    pitching.moveDown();
+                    sleep(250);
+                    claw.closeClaw();
+                    setPathState(15);
+                }
+                break;
+            case 15:
+                if (pathTimer.getElapsedTime() > 200) {
+                    pitching.moveUp();
+                    follower.followPath(bucket3);
+                    panning.setTargetPos(1700);
+                    while (panning.getCurrentPos() < 1500) {
+                        panning.updatePanning();
+                        follower.update();
+                    }
+                    slides.setTargetPos(2300);
+                    setPathState(16);
+                }
+                break;
+            case 16:
+                if (slides.getCurrentPos() > 2100) {
+                    // Move servos
+                    panningServo.moveSpecific(0.45);
+                    setPathState(234);
+                }
+                break;
+            case 234:
+                if (pathTimer.getElapsedTime() > 500 && !follower.isBusy()) {
+                    claw.openClaw();
+                    setPathState(17);
+                }
+                break;
+            case 17:
+                if (pathTimer.getElapsedTime() > 1000) {
+                    panningServo.moveDown();
+                    sleep(300);
+                    follower.followPath(sub1, true);
+                    follower.setMaxPower(1.0);
                     slides.setTargetPos(700);
                     while (slides.getCurrentPos() > 800) {
                         slides.updateSlide();
@@ -174,53 +278,13 @@ public class BUCKET extends LinearOpMode {
                         follower.update();
                     }
                     panning.setTargetPos(0);
-                    setPathState(333);
-                }
-                break;
-            case 14:
-                    if (!follower.isBusy()) {
-                        // Add servo movements
-                        pitching.moveDown();
-                        sleep(250);
-                        claw.closeClaw();
-                        setPathState(15);
-                    }
-                break;
-            case 15:
-                if (pathTimer.getElapsedTime() > 600) {
-                    follower.followPath(bucket3);
-                    panning.setTargetPos(1700);
-                    setPathState(16);
-                }
-                break;
-            case 16:
-                if (pathTimer.getElapsedTime() > 1000) {
-                    slides.setTargetPos(1700);
-                    setPathState(17);
-                }
-            case 17:
-                if (slides.getCurrentPos() > 2100) {
-                    panningServo.moveSpecific(0.45);
-                    sleep(500);
-                    claw.openClaw();
                     setPathState(18);
-
-                    //setPathState(18);
                 }
                 break;
             case 18:
-                if (pathTimer.getElapsedTime() > 1000) {
-                    follower.followPath(sub1, true);
-                    slides.setTargetPos(0);
-                    panning.setTargetPos(0);
-                    while (slides.getCurrentPos() > 800) {
-                        slides.updateSlide();
-                        slides.updatePower();
-                        follower.update();
-                    }
 
-                }
                 break;
+
         }
     }
 
@@ -232,10 +296,11 @@ public class BUCKET extends LinearOpMode {
     public void buildPaths() {
         bucketInitial = follower.pathBuilder()
                 .addPath(
+                        // Line 1
                         new BezierCurve(
                                 new Point(136.621, 33.317, Point.CARTESIAN),
                                 new Point(123.876, 33.540, Point.CARTESIAN),
-                                new Point(125.503, 17.304, Point.CARTESIAN)
+                                new Point(124.263, 19.133, Point.CARTESIAN)
                         )
                 )
                 .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(135)).build();
@@ -243,8 +308,8 @@ public class BUCKET extends LinearOpMode {
                 .addPath(
                         // Line 2
                         new BezierLine(
-                                new Point(121.863, 20.571, Point.CARTESIAN),
-                                new Point(113.790, 16.917, Point.CARTESIAN)
+                                new Point(124.263, 19.133, Point.CARTESIAN),
+                                new Point(115.401, 12.084, Point.CARTESIAN)
                         )
                 )
                 .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(160)).build();
@@ -252,25 +317,27 @@ public class BUCKET extends LinearOpMode {
                 .addPath(
                         // Line 3
                         new BezierLine(
-                                new Point(116.006, 14.702, Point.CARTESIAN),
-                                new Point(121.863, 20.571, Point.CARTESIAN)
+                                new Point(115.401, 12.084, Point.CARTESIAN),
+                                new Point(122.853, 16.917, Point.CARTESIAN)
                         )
                 )
                 .setLinearHeadingInterpolation(Math.toRadians(160), Math.toRadians(135)).build();
         pickup2 = follower.pathBuilder()
                 .addPath(
+                        // Line 4
                         new BezierLine(
-                                new Point(120.839, 19.133, Point.CARTESIAN),
-                                new Point(115.956, 12.530, Point.CARTESIAN)
+                                new Point(122.853, 16.917, Point.CARTESIAN),
+                                new Point(116.207, 6.042, Point.CARTESIAN)
                         )
                 )
                 .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(193))
                 .build();
         bucket2 = follower.pathBuilder()
                 .addPath(
+                        // Line 5
                         new BezierLine(
-                                new Point(115.956, 12.530, Point.CARTESIAN),
-                                new Point(119.027, 17.320, Point.CARTESIAN)
+                                new Point(116.207, 6.042, Point.CARTESIAN),
+                                new Point(120.638, 14.903, Point.CARTESIAN)
                         )
                 )
                 .setLinearHeadingInterpolation(Math.toRadians(193), Math.toRadians(135))
@@ -279,26 +346,27 @@ public class BUCKET extends LinearOpMode {
                 .addPath(
                         // Line 6
                         new BezierLine(
-                                new Point(121.863, 20.571, Point.CARTESIAN),
-                                new Point(115.804, 4.834, Point.CARTESIAN)
+                                new Point(120.638, 14.903, Point.CARTESIAN),
+                                new Point(116.811, 1.410, Point.CARTESIAN)
                         )
                 )
-                .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(200)).build();
+                .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(210)).build();
         bucket3 = follower.pathBuilder()
                 .addPath(
                         // Line 7
                         new BezierLine(
-                                new Point(114.037, 12.075, Point.CARTESIAN),
-                                new Point(121.863, 20.571, Point.CARTESIAN)
+                                new Point(116.811, 1.410, Point.CARTESIAN),
+                                new Point(124.062, 16.313, Point.CARTESIAN)
                         )
                 )
-                .setLinearHeadingInterpolation(Math.toRadians(200), Math.toRadians(135)).build();
+                .setLinearHeadingInterpolation(Math.toRadians(210), Math.toRadians(135)).build();
         sub1 = follower.pathBuilder()
                 .addPath(
+                        // Line 8
                         new BezierCurve(
-                                new Point(119.429, 17.723, Point.CARTESIAN),
-                                new Point(70.000, 10.000, Point.CARTESIAN),
-                                new Point(72.199, 47.934, Point.CARTESIAN)
+                                new Point(124.062, 16.313, Point.CARTESIAN),
+                                new Point(83.580, 22.557, Point.CARTESIAN),
+                                new Point(84.386, 46.724, Point.CARTESIAN)
                         )
                 )
                 .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(90))
@@ -314,8 +382,8 @@ public class BUCKET extends LinearOpMode {
         pitching = new Pitching(hardwareMap);
         orientation = new Orientation(hardwareMap);
         panningServo = new PanningServo(hardwareMap);
-        dSensor =  hardwareMap.get(DistanceSensor.class, "distance");
-        light = new Light(hardwareMap);
+        //dSensor =  hardwareMap.get(DistanceSensor.class, "distance");
+        //light = new Light(hardwareMap);
 
         // Set up follower
         Constants.setConstants(FConstants.class, LConstants.class);
@@ -334,7 +402,7 @@ public class BUCKET extends LinearOpMode {
 
         panning.setTargetPos(370);
         slides.setTargetPos(0);
-        light.goToBlue();
+        //light.goToBlue();
 
         // Set path state to initial
         setPathState(0);
@@ -346,6 +414,7 @@ public class BUCKET extends LinearOpMode {
         }
 
         waitForStart();
+        panningServo.moveDown();
         opmodeTimer.resetTimer();
 
         while (opModeIsActive()) {

@@ -11,7 +11,6 @@ import com.pedropathing.util.Constants;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.hardware.DistanceSensor;
 
 import org.firstinspires.ftc.teamcode.parts.Claw;
 import org.firstinspires.ftc.teamcode.parts.Light;
@@ -24,26 +23,25 @@ import org.firstinspires.ftc.teamcode.pedroPathing.constants.FConstants;
 import org.firstinspires.ftc.teamcode.pedroPathing.constants.LConstants;
 
 @Autonomous
-public class SUBMERSIBLE extends LinearOpMode {
+public class Submersible extends LinearOpMode {
     public PIDFPanning panning;
     public PIDFSlide slides;
     public Claw claw;
     public Orientation orientation;
     public Pitching pitching;
     public PanningServo panningServo;
-    //public DistanceSensor dSensor;
-    //public Light light;
+    public Light light;
 
     private Timer pathTimer, opmodeTimer, waitTimer;
     int score = 1700;
     int pick = 0;
 
     double panningScore = 0.9;
-    double panningPick = 0.6;
+    double panningPick = 0.55;
 
-    int slideScore = 1000;
-    int slideStart = 1150;
-    int slidePickUp = 600;
+    int slideScore = 950;
+    int slideStart = 1025;
+    int slideWeird = 1010;
 
     private Follower follower;
     private final Pose startPose = new Pose(134.937, 78.948, Math.toRadians(0));
@@ -61,8 +59,11 @@ public class SUBMERSIBLE extends LinearOpMode {
                 break;
             case 0:
                 panningServo.moveSpecific(panningScore);
-                slides.setTargetPos(slideStart);
                 panning.setTargetPos(score);
+                while (panning.getCurrentPos() < 1300) {
+                    updateImportant();
+                }
+                slides.setTargetPos(slideStart);
                 setPathState(123);
                 break;
             case 123:
@@ -72,9 +73,9 @@ public class SUBMERSIBLE extends LinearOpMode {
                 }
                 break;
             case 1:
-                if (follower.getCurrentTValue() > 0.9) {
+                if (follower.getCurrentTValue() > 0.98) {
                     slides.setTargetPos(0);
-                    while (slides.getCurrentPos() > 350) {
+                    while (slides.getCurrentPos() > 250) {
                         slides.updateSlide();
                         slides.updatePower();
                         follower.update();
@@ -103,17 +104,17 @@ public class SUBMERSIBLE extends LinearOpMode {
                 if (follower.getCurrentTValue() > 0.925) {
                     follower.breakFollowing();
                     claw.closeClaw();
-                    sleep(100);
+                    waitTimer(100);
                     panningServo.moveSpecific(panningScore);
                     orientation.moveOpposite();
                     follower.followPath(longHang);
                     panning.setTargetPos(score);
-                    slides.setTargetPos(slideScore);
+                    slides.setTargetPos(slideWeird);
                     setPathState(6);
                 }
                 break;
             case 6:
-                if (follower.getCurrentTValue() > 0.9) {
+                if (follower.getCurrentTValue() > 0.85) {
                     slides.setTargetPos(0);
                     while (slides.getCurrentPos() > 350) {
                         updateImportant();
@@ -122,7 +123,7 @@ public class SUBMERSIBLE extends LinearOpMode {
                     claw.openClaw();
                     orientation.moveNormal();
                     panning.setTargetPos(0);
-                    panningServo.moveSpecific(0.55);
+                    panningServo.moveSpecific(panningPick);
                     pathTimer.resetTimer();
                     setPathState(7);
                 }
@@ -130,14 +131,14 @@ public class SUBMERSIBLE extends LinearOpMode {
             case 7:
                 if (follower.getCurrentTValue() > 0.9) {
                     follower.breakFollowing();
-                    sleep(150);
+                    waitTimer(150);
                     claw.closeClaw();
                     waitTimer(200);
                     follower.followPath(hang);
                     orientation.moveOpposite();
                     panningServo.moveSpecific(0.9);
                     panning.setTargetPos(1800);
-                    slides.setTargetPos(850);
+                    slides.setTargetPos(slideScore);
                     setPathState(6);
                 }
                 break;
@@ -155,17 +156,17 @@ public class SUBMERSIBLE extends LinearOpMode {
                         // Line 1
                         new BezierLine(
                                 new Point(134.937, 78.948, Point.CARTESIAN),
-                                new Point(112.985, 78.948, Point.CARTESIAN)
+                                new Point(108, 78.948, Point.CARTESIAN)
                         )
                 )
                 .setConstantHeadingInterpolation(Math.toRadians(0))
-                .setZeroPowerAccelerationMultiplier(6).build();
+                .setZeroPowerAccelerationMultiplier(2).build();
 
         pushTwo = follower.pathBuilder()
                 .addPath(
                         // Line 2
                         new BezierCurve(
-                                new Point(108.151, 78.747, Point.CARTESIAN),
+                                new Point(108, 78.948, Point.CARTESIAN),
                                 new Point(119.631, 115.804, Point.CARTESIAN),
                                 new Point(82.573, 102.310, Point.CARTESIAN),
                                 new Point(85.594, 118.221, Point.CARTESIAN)
@@ -234,19 +235,18 @@ public class SUBMERSIBLE extends LinearOpMode {
                         new BezierCurve(
                                 new Point(133.527, 116.006, Point.CARTESIAN),
                                 new Point(124.800, 80.718, Point.CARTESIAN),
-                                new Point(111.978, 85.594, Point.CARTESIAN),
-                                new Point(113.186, 78.948, Point.CARTESIAN)
+                                new Point(111.282, 81.110, Point.CARTESIAN),
+                                new Point(113.045, 76.800, Point.CARTESIAN)
                         )
                 )
                 .setConstantHeadingInterpolation(Math.toRadians(0))
                 .build();
         back = follower.pathBuilder()
                 .addPath(
-                        // Line 9
                         new BezierCurve(
                                 new Point(113.186, 79.150, Point.CARTESIAN),
                                 new Point(121.861, 80.131, Point.CARTESIAN),
-                                new Point(108.554, 115.200, Point.CARTESIAN),
+                                new Point(108.147, 103.445, Point.CARTESIAN),
                                 new Point(133.527, 116.006, Point.CARTESIAN)
                         )
                 )
@@ -363,8 +363,7 @@ public class SUBMERSIBLE extends LinearOpMode {
         pitching = new Pitching(hardwareMap);
         orientation = new Orientation(hardwareMap);
         panningServo = new PanningServo(hardwareMap);
-        //dSensor =  hardwareMap.get(DistanceSensor.class, "distance");
-        //light = new Light(hardwareMap);
+        light = new Light(hardwareMap);
 
         // Set up follower
         Constants.setConstants(FConstants.class, LConstants.class);
@@ -380,9 +379,9 @@ public class SUBMERSIBLE extends LinearOpMode {
         pitching.moveUp(); // Pitching UP
         orientation.moveNormal(); // Orientation at normal pos
 
-        panning.setTargetPos(370);
+        panning.setTargetPos(0);
         slides.setTargetPos(0);
-        //light.goToBlue();
+        light.goToBlue();
 
         // Set path state to initial
         setPathState(0);

@@ -18,6 +18,8 @@ public class PanningServo {
         panning.setPosition(0);
     }
 
+    public double getPosition() { return panning.getPosition(); }
+
     public void moveSpecific(double pos) {
         panning.setPosition(pos);
     }

@@ -10,11 +10,11 @@ public class Pitching {
         pitching = hw.get(Servo.class, "pitching");
     }
 
-    public void moveDown() {
+    public void moveUp() {
         pitching.setPosition(1.0);
     }
 
-    public void moveUp() {
+    public void moveDown() {
         pitching.setPosition(0);
     }
 

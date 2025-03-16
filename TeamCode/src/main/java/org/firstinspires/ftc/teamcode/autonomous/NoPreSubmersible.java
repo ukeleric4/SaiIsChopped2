@@ -38,7 +38,7 @@ public class NoPreSubmersible extends LinearOpMode {
     double panningScore = 0.9;
     double panningPick = 0.55;
 
-    int slideScore = 950;
+    int slideScore = 915;
     int slideStart = 1025;
     int slideWeird = 1010;
 
@@ -84,7 +84,7 @@ public class NoPreSubmersible extends LinearOpMode {
                 }
                 break;
             case 5:
-                if (follower.getCurrentTValue() > 0.875) {
+                if (follower.getCurrentTValue() > 0.8) {
                     follower.breakFollowing();
                     claw.closeClaw();
                     waitTimer(100);
@@ -92,6 +92,9 @@ public class NoPreSubmersible extends LinearOpMode {
                     orientation.moveOpposite();
                     follower.followPath(longHang);
                     panning.setTargetPos(score);
+                    while (panning.getCurrentPos() < 1300) {
+                        updateImportant();
+                    }
                     slides.setTargetPos(slideWeird);
                     setPathState(6);
                 }
@@ -112,15 +115,17 @@ public class NoPreSubmersible extends LinearOpMode {
                 }
                 break;
             case 7:
-                if (follower.getCurrentTValue() > 0.9) {
+                if (follower.getCurrentTValue() > 0.95) {
                     follower.breakFollowing();
-                    waitTimer(150);
                     claw.closeClaw();
-                    waitTimer(200);
+                    waitTimer(250);
                     follower.followPath(hang);
                     orientation.moveOpposite();
                     panningServo.moveSpecific(0.9);
                     panning.setTargetPos(1800);
+                    while (panning.getCurrentPos() < 1300) {
+                        updateImportant();
+                    }
                     slides.setTargetPos(slideScore);
                     setPathState(6);
                 }
@@ -208,7 +213,7 @@ public class NoPreSubmersible extends LinearOpMode {
                                 new Point(132.319, 135.944, Point.CARTESIAN),
                                 new Point(127.485, 71.295, Point.CARTESIAN),
                                 new Point(112.380, 87.004, Point.CARTESIAN),
-                                new Point(113.186, 79.150, Point.CARTESIAN)
+                                new Point(112, 79.150, Point.CARTESIAN)
                         )
                 )
                 .setConstantHeadingInterpolation(Math.toRadians(0))
@@ -220,7 +225,7 @@ public class NoPreSubmersible extends LinearOpMode {
                                 new Point(133.527, 116.006, Point.CARTESIAN),
                                 new Point(124.800, 80.718, Point.CARTESIAN),
                                 new Point(111.282, 81.110, Point.CARTESIAN),
-                                new Point(113.045, 76.800, Point.CARTESIAN)
+                                new Point(112, 76.800, Point.CARTESIAN)
                         )
                 )
                 .setConstantHeadingInterpolation(Math.toRadians(0))
@@ -228,14 +233,14 @@ public class NoPreSubmersible extends LinearOpMode {
         back = follower.pathBuilder()
                 .addPath(
                         new BezierCurve(
-                                new Point(113.186, 79.150, Point.CARTESIAN),
+                                new Point(112, 79.150, Point.CARTESIAN),
                                 new Point(121.861, 80.131, Point.CARTESIAN),
                                 new Point(108.147, 103.445, Point.CARTESIAN),
                                 new Point(133.527, 116.006, Point.CARTESIAN)
                         )
                 )
                 .setConstantHeadingInterpolation(Math.toRadians(0))
-                .setZeroPowerAccelerationMultiplier(0.8)
+                .setZeroPowerAccelerationMultiplier(1)
                 .build();
 
 
@@ -352,6 +357,7 @@ public class NoPreSubmersible extends LinearOpMode {
         // Set up follower
         Constants.setConstants(FConstants.class, LConstants.class);
         follower = new Follower(hardwareMap);
+        follower.setMaxPower(0.95);
         buildPaths();
 
         pathTimer = new Timer();

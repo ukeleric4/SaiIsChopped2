@@ -119,7 +119,7 @@ public class BlueSub extends LinearOpMode {
                                 new Point(130.000, 116.006, Point.CARTESIAN),
                                 new Point(127.347, 81.698, Point.CARTESIAN),
                                 new Point(116.767, 91.102, Point.CARTESIAN),
-                                new Point(113.241, 78.367, Point.CARTESIAN)
+                                new Point(112.5, 78.367, Point.CARTESIAN)
                         )
                 )
                 .setConstantHeadingInterpolation(Math.toRadians(0))
@@ -129,9 +129,9 @@ public class BlueSub extends LinearOpMode {
                 .addPath(
                         new BezierCurve(
                                 new Point(130.000, 116.006, Point.CARTESIAN),
-                                new Point(129.110, 77.192, Point.CARTESIAN),
-                                new Point(116.767, 91.102, Point.CARTESIAN),
-                                new Point(114.416, 79.543, Point.CARTESIAN)
+                                new Point(126.955, 85.029, Point.CARTESIAN),
+                                new Point(114.416, 87.380, Point.CARTESIAN),
+                                new Point(112.5, 81.5, Point.CARTESIAN)
                         )
                 )
                 .setConstantHeadingInterpolation(Math.toRadians(0))
@@ -285,13 +285,13 @@ public class BlueSub extends LinearOpMode {
             follower.startTeleopDrive();
         }
 
-        if (gamepad2.right_bumper && gamepad2.right_stick_button) {
+        if (gamepad2.right_bumper && !gamepad2.right_stick_button) {
             claw.closeClaw();
             waitTimer(250);
             orientation.moveOpposite();
             panningServo.moveSpecific(0.9);
             panningMotor.setTargetPos(1800);
-            slides.setTargetPos(975);
+            slides.setTargetPos(850);
         }
 
         if (gamepad1.x) {
@@ -325,26 +325,21 @@ public class BlueSub extends LinearOpMode {
                     }
                     follower.followPath(autoPlaceBack);
                     claw.openClaw();
-                    slides.setTargetPos(200 + (run * 32));
                     orientation.moveNormal();
                     panningMotor.setTargetPos(0);
+                    while (panningMotor.getCurrentPos() > 500) {
+                        updateImportant();
+                    }
+                    slides.setTargetPos(200 + (run * 32));
                     panningServo.moveSpecific(0.55);
                     setPathState(2);
                 }
                 break;
             case 2:
-                if (follower.getCurrentTValue() > 0.75) {
-                    follower.breakFollowing();
-                    waitTimer(500);
-                    follower.resumePathFollowing();
-                    setPathState(3);
-                }
-                break;
-            case 3:
-                if (follower.getCurrentTValue() > 0.99) {
+                if (follower.getCurrentTValue() > 0.88) {
                     if (run < 7) {
                         follower.breakFollowing();
-                        waitTimer(250);
+                        waitTimer(350);
                         claw.closeClaw();
                         waitTimer(100);
                         follower.followPath(autoPlace);
@@ -354,11 +349,11 @@ public class BlueSub extends LinearOpMode {
                         while (panningMotor.getCurrentPos() < 1300) {
                             updateImportant();
                         }
-                        slides.setTargetPos(900);
+                        slides.setTargetPos(875);
                         run += 1;
                     } else {
                         follower.breakFollowing();
-                        waitTimer(250);
+                        waitTimer(350);
                         claw.closeClaw();
                         waitTimer(100);
                         follower.followPath(weirdPlace);
@@ -462,14 +457,14 @@ public class BlueSub extends LinearOpMode {
         offsetY = result.getTy();
         if (offsetX < -1 || offsetX > 1) {
             if (offsetX > 6 || offsetX < -6) {
-                power = (offsetX) / 30;
+                power = (offsetX) / 40;
             } else {
-                power = (offsetX) / 15;
+                power = (offsetX) / 22.5;
             }
         } else {
             power = 0;
         }
-        targetPosition = (int) ((-10 + offsetY) * 5);
+        targetPosition = (int) ((-5 + offsetY) * 5);
 
         pythonResults = result.getPythonOutput();
         uhorientation = pythonResults[6];

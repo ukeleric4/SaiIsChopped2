@@ -45,10 +45,11 @@ public class RedSub extends LinearOpMode {
 
     private Follower follower;
     private final Pose startPose = new Pose(0, 0, 0);
-    private final Pose hangPose = new Pose(131, 120, 0);
+    private final Pose hangPose = new Pose(132, 120, 0);
     PathChain autoPlace;
     PathChain autoPlaceBack;
     PathChain align;
+    PathChain weirdPlace;
 
     Timer pathTimer1;
     Timer pathTimer2;
@@ -71,6 +72,8 @@ public class RedSub extends LinearOpMode {
     double power = 0;
 
     boolean depositDown = true;
+
+    int run = 0;
 
     Timer followerTime;
     Timer waitTimer;
@@ -113,10 +116,22 @@ public class RedSub extends LinearOpMode {
         autoPlace = follower.pathBuilder()
                 .addPath(
                         new BezierCurve(
-                                new Point(133.527, 116.006, Point.CARTESIAN),
-                                new Point(124.800, 80.718, Point.CARTESIAN),
-                                new Point(111.978, 85.594, Point.CARTESIAN),
-                                new Point(113.186, 78.948, Point.CARTESIAN)
+                                new Point(130.000, 116.006, Point.CARTESIAN),
+                                new Point(127.347, 81.698, Point.CARTESIAN),
+                                new Point(116.767, 91.102, Point.CARTESIAN),
+                                new Point(112.5, 78.367, Point.CARTESIAN)
+                        )
+                )
+                .setConstantHeadingInterpolation(Math.toRadians(0))
+                .build();
+
+        weirdPlace = follower.pathBuilder()
+                .addPath(
+                        new BezierCurve(
+                                new Point(130.000, 116.006, Point.CARTESIAN),
+                                new Point(126.955, 85.029, Point.CARTESIAN),
+                                new Point(114.416, 87.380, Point.CARTESIAN),
+                                new Point(112.5, 81.5, Point.CARTESIAN)
                         )
                 )
                 .setConstantHeadingInterpolation(Math.toRadians(0))
@@ -125,21 +140,20 @@ public class RedSub extends LinearOpMode {
         autoPlaceBack = follower.pathBuilder()
                 .addPath(
                         new BezierCurve(
-                                new Point(113.186, 78.948, Point.CARTESIAN),
+                                new Point(114.000, 80.000, Point.CARTESIAN),
                                 new Point(121.861, 80.131, Point.CARTESIAN),
                                 new Point(108.147, 105.600, Point.CARTESIAN),
-                                new Point(133.527, 116.006, Point.CARTESIAN)
+                                new Point(130.000, 116.000, Point.CARTESIAN)
                         )
                 )
                 .setConstantHeadingInterpolation(Math.toRadians(0))
-                .setZeroPowerAccelerationMultiplier(2)
                 .build();
 
         align = follower.pathBuilder()
                 .addPath(
                         new BezierLine(
                                 new Point(136.000, 136.000, Point.CARTESIAN),
-                                new Point(130.000, 116.006, Point.CARTESIAN)
+                                new Point(130.000, 116, Point.CARTESIAN)
                         )
                 )
                 .setConstantHeadingInterpolation(Math.toRadians(0))
@@ -195,7 +209,7 @@ public class RedSub extends LinearOpMode {
 
     public void slidePos() {
         if (gamepad2.y) {
-            slides.setTargetPos(1800);
+            slides.setTargetPos(1500);
             panningServo.moveDown();
             claw.openClaw();
         } else if (gamepad1.right_bumper) {
@@ -203,14 +217,14 @@ public class RedSub extends LinearOpMode {
             claw.closeClaw();
             panningServo.moveSpecific(0.45);
         } else if (gamepad2.a) {
-            slides.setTargetPos(1700);
+            slides.setTargetPos(1200);
             claw.openClaw();
             panningServo.moveSpecific(0.45);
         }
     }
 
     public void sampleControl() {
-        if (gamepad2.right_bumper && gamepad2.dpad_up && depositDown) {
+        if (gamepad2.right_trigger > 0.8 && gamepad2.dpad_left && depositDown) {
             slides.setTargetPos(0);
             while (slides.getCurrentPos() > 100) {
                 updateImportant();
@@ -224,7 +238,7 @@ public class RedSub extends LinearOpMode {
             depositDown = false;
         }
 
-        if (gamepad2.right_bumper && gamepad2.dpad_up && !depositDown) {
+        if (gamepad2.right_trigger > 0.8 && gamepad2.dpad_left && !depositDown) {
             claw.openClaw();
             waitTimer(300);
             panningServo.moveDown();
@@ -261,6 +275,7 @@ public class RedSub extends LinearOpMode {
             waitTimer(250);
             follower.setPose(hangPose);
             autoPlacing = true;
+            run += 1;
             while (!gamepad1.b) {
                 runAutoPlacement();
                 updateImportant();
@@ -270,13 +285,13 @@ public class RedSub extends LinearOpMode {
             follower.startTeleopDrive();
         }
 
-        if (gamepad2.right_bumper && gamepad2.right_stick_button) {
+        if (gamepad2.right_bumper && !gamepad2.right_stick_button) {
             claw.closeClaw();
             waitTimer(250);
             orientation.moveOpposite();
             panningServo.moveSpecific(0.9);
             panningMotor.setTargetPos(1800);
-            slides.setTargetPos(975);
+            slides.setTargetPos(850);
         }
 
         if (gamepad1.x) {
@@ -296,37 +311,63 @@ public class RedSub extends LinearOpMode {
                 orientation.moveOpposite();
                 panningServo.moveSpecific(0.9);
                 panningMotor.setTargetPos(1800);
-                slides.setTargetPos(1010);
+                while (panningMotor.getCurrentPos() < 1300) {
+                    updateImportant();
+                }
+                slides.setTargetPos(900);
                 setPathState(1);
                 break;
             case 1:
-                if (follower.getCurrentTValue() > 0.7) {
+                if (follower.getCurrentTValue() > 0.9) {
                     slides.setTargetPos(0);
-                    while (slides.getCurrentPos() > 350) {
+                    while (slides.getCurrentPos() > 425) {
                         updateImportant();
                     }
                     follower.followPath(autoPlaceBack);
                     claw.openClaw();
                     orientation.moveNormal();
                     panningMotor.setTargetPos(0);
+                    while (panningMotor.getCurrentPos() > 500) {
+                        updateImportant();
+                    }
+                    slides.setTargetPos(200 + (run * 32));
                     panningServo.moveSpecific(0.55);
                     setPathState(2);
                 }
                 break;
             case 2:
-                if (follower.getCurrentTValue() > 0.95) {
-                    follower.breakFollowing();
-                    waitTimer(250);
-                    claw.closeClaw();
-                    waitTimer(200);
-                    follower.followPath(autoPlace);
-                    orientation.moveOpposite();
-                    panningServo.moveSpecific(0.9);
-                    panningMotor.setTargetPos(1800);
-                    slides.setTargetPos(1010);
+                if (follower.getCurrentTValue() > 0.88) {
+                    if (run < 7) {
+                        follower.breakFollowing();
+                        waitTimer(350);
+                        claw.closeClaw();
+                        waitTimer(100);
+                        follower.followPath(autoPlace);
+                        orientation.moveOpposite();
+                        panningServo.moveSpecific(0.9);
+                        panningMotor.setTargetPos(1800);
+                        while (panningMotor.getCurrentPos() < 1300) {
+                            updateImportant();
+                        }
+                        slides.setTargetPos(875);
+                        run += 1;
+                    } else {
+                        follower.breakFollowing();
+                        waitTimer(350);
+                        claw.closeClaw();
+                        waitTimer(100);
+                        follower.followPath(weirdPlace);
+                        orientation.moveOpposite();
+                        panningServo.moveSpecific(0.9);
+                        panningMotor.setTargetPos(1800);
+                        while (panningMotor.getCurrentPos() < 1300) {
+                            updateImportant();
+                        }
+                        slides.setTargetPos(900);
+                        run += 1;
+                    }
                     setPathState(1);
                 }
-                break;
         }
     }
 
@@ -336,11 +377,11 @@ public class RedSub extends LinearOpMode {
     }
 
     public void manualPanning() {
-        if (gamepad2.right_trigger > 0.8) {
-            panningMotor.setTargetPos(1600);
-        } else if (gamepad2.left_trigger > 0.8) {
-            panningMotor.setTargetPos(0);
-        }
+//        if (gamepad2.right_trigger > 0.8) {
+//            panningMotor.setTargetPos(1600);
+//        } else if (gamepad2.left_trigger > 0.8) {
+//            panningMotor.setTargetPos(0);
+//        }
     }
 
     public void clawMovement() {
@@ -416,14 +457,14 @@ public class RedSub extends LinearOpMode {
         offsetY = result.getTy();
         if (offsetX < -1 || offsetX > 1) {
             if (offsetX > 6 || offsetX < -6) {
-                power = (offsetX) / 50;
+                power = (offsetX) / 40;
             } else {
                 power = (offsetX) / 22.5;
             }
         } else {
             power = 0;
         }
-        targetPosition = (int) ((-10 + offsetY) * 5);
+        targetPosition = (int) ((-5 + offsetY) * 5);
 
         pythonResults = result.getPythonOutput();
         uhorientation = pythonResults[6];
@@ -450,11 +491,10 @@ public class RedSub extends LinearOpMode {
     }
 
     public void hanging() {
-        if (gamepad1.dpad_left && gamepad2.dpad_left) {
+        if (gamepad2.right_trigger > 0.8 && gamepad2.left_trigger > 0.8) {
             slides.setTargetPos(2350);
             panningMotor.setTargetPos(1800);
-        }
-        if (gamepad1.dpad_right && gamepad2.dpad_right) {
+            while (!gamepad2.left_bumper && !gamepad2.right_bumper) {update();}
             slides.setTargetPos(1400);
             panningMotor.setTargetPos(0);
         }

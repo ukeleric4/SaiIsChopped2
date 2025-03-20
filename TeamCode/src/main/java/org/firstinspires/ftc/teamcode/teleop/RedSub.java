@@ -492,7 +492,7 @@ public class RedSub extends LinearOpMode {
 
     public void hanging() {
         if (gamepad2.right_trigger > 0.8 && gamepad2.left_trigger > 0.8) {
-            slides.setTargetPos(2350);
+            slides.setTargetPos(2450);
             panningMotor.setTargetPos(1800);
             while (!gamepad2.left_bumper && !gamepad2.right_bumper) {update();}
             slides.setTargetPos(1400);

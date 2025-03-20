@@ -38,7 +38,7 @@ public class NoPreSubmersible extends LinearOpMode {
     double panningScore = 0.9;
     double panningPick = 0.55;
 
-    int slideScore = 915;
+    int slideScore = 890;
     int slideStart = 1025;
     int slideWeird = 1010;
 
@@ -87,7 +87,7 @@ public class NoPreSubmersible extends LinearOpMode {
                 if (follower.getCurrentTValue() > 0.8) {
                     follower.breakFollowing();
                     claw.closeClaw();
-                    waitTimer(100);
+                    waitTimer(250);
                     panningServo.moveSpecific(panningScore);
                     orientation.moveOpposite();
                     follower.followPath(longHang);

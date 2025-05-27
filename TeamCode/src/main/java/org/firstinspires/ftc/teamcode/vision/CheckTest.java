@@ -53,9 +53,9 @@ public class CheckTest extends LinearOpMode {
     LLResult result;
 
     Timer followerTime;
-    int targetPosition = 1250;
+    int targetPosition = 500;
 
-    Light light;
+    //Light light;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -66,41 +66,47 @@ public class CheckTest extends LinearOpMode {
         orientation = new Orientation(hardwareMap);
         claw = new Claw(hardwareMap);
         slides = new PIDFSlide(hardwareMap);
-        light = new Light(hardwareMap);
+        //light = new Light(hardwareMap);
 
         fl = hardwareMap.get(DcMotor.class, "fl");
         fr = hardwareMap.get(DcMotor.class, "fr");
         bl = hardwareMap.get(DcMotor.class, "bl");
         br = hardwareMap.get(DcMotor.class, "br");
 
-        fl.setDirection(DcMotorSimple.Direction.FORWARD);
-        bl.setDirection(DcMotorSimple.Direction.FORWARD);
-        fr.setDirection(DcMotorSimple.Direction.REVERSE);
-        br.setDirection(DcMotorSimple.Direction.REVERSE);
+        fl.setDirection(DcMotorSimple.Direction.REVERSE);
+        bl.setDirection(DcMotorSimple.Direction.REVERSE);
+        fr.setDirection(DcMotorSimple.Direction.FORWARD);
+        br.setDirection(DcMotorSimple.Direction.FORWARD);
 
         pitching.moveUp();
-        light.goToWhite();
+        //light.goToWhite();
         claw.openClaw();
         panning.moveSpecific(0.5);
-
-        Constants.setConstants(FConstants.class, LConstants.class);
-        follower = new Follower(hardwareMap);
+        follower = new Follower(hardwareMap, FConstants.class, LConstants.class);
         follower.setStartingPose(startPose);
         follower.startTeleopDrive();
 
         followerTime = new Timer();
 
-        limelight.pipelineSwitch(0);
-        limelight.start();
-
         waitForStart();
+        limelight.start();
         followerTime.resetTimer();
 
         while (opModeIsActive()) {
+            if (limelight.isRunning()) {
+                telemetry.addData("limelight is running", true);
+            }
             result = limelight.getLatestResult();
+            if (result == null) {
+                limelight.close();
+                limelight.start();
+                limelight.pipelineSwitch(0);
+                telemetry.addData("Time: ", limelight.getTimeSinceLastUpdate());
+                telemetry.addData("result", "null");
+            }
 
             if (gamepad1.y) {
-                slides.setTargetPos(1250);
+                slides.setTargetPos(500);
             }
 
             if (gamepad1.x) {
@@ -134,24 +140,24 @@ public class CheckTest extends LinearOpMode {
                     strafe(power);
                     orientation.moveSpecific(uhorientation);
                     slides.updateSlide();
-                    slides.updatePower();
                 }
                 strafe(0);
-                    panning.moveDown();
-                    sleep(300);
-                    pitching.moveDown();
-                    sleep(200);
-                    claw.closeClaw();
-                    pitching.moveUp();
+                panning.moveDown();
+                sleep(300);
+                pitching.moveDown();
+                sleep(200);
+                claw.closeClaw();
+                pitching.moveUp();
             }
         }
     }
 
     public void strafe(double power) {
-        fl.setPower(power);
-        br.setPower(power);
-        fr.setPower(-power);
-        bl.setPower(-power);
+        double newPower = power * 0.5;
+        fl.setPower(newPower);
+        br.setPower(newPower);
+        fr.setPower(-newPower);
+        bl.setPower(-newPower);
     }
 
     public void updateResults() {
@@ -162,12 +168,16 @@ public class CheckTest extends LinearOpMode {
             if (offsetX > 10 || offsetX < -10) {
                 power = (offsetX + 4) / 30;
             } else {
-                power = (offsetX + 4) / 15;
+                power = (offsetX + 4) / 10;
             }
         } else {
             power = 0;
         }
-        targetPosition = (int) ((-13 + offsetY) * 3);
+        if (offsetY == 0) {
+            targetPosition = -100;
+        } else {
+            targetPosition = (int) ((offsetY) * 2);
+        }
 
         pythonResults = result.getPythonOutput();
         uhorientation = pythonResults[6];

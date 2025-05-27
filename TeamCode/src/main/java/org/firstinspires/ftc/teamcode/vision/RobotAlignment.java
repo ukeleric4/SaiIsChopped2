@@ -46,9 +46,8 @@ public class RobotAlignment extends LinearOpMode {
         pathTimer = new Timer();
         opModeTimer = new Timer();
 
-        Constants.setConstants(FConstants.class, LConstants.class);
         orientation = new Orientation(hardwareMap);
-        follower = new Follower(hardwareMap);
+        follower = new Follower(hardwareMap, FConstants.class, LConstants.class);
         follower.setStartingPose(startPose);
         follower.startTeleopDrive();
 

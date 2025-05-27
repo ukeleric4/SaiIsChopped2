@@ -25,22 +25,22 @@ import org.firstinspires.ftc.teamcode.pedroPathing.constants.LConstants;
 public class NoPreSubmersible extends LinearOpMode {
     public PIDFPanning panning;
     public PIDFSlide slides;
-    public Claw claw;
+    //public Claw claw;
     public Orientation orientation;
     public Pitching pitching;
     public PanningServo panningServo;
-    public Light light;
+    //public Light light;
 
     private Timer pathTimer, opmodeTimer, waitTimer;
     int score = 1700;
     int pick = 0;
 
     double panningScore = 0.9;
-    double panningPick = 0.55;
+    double panningPick = 0.6;
 
-    int slideScore = 890;
-    int slideStart = 1025;
-    int slideWeird = 1010;
+    int slideScore = 450;
+    int slideStart = 500;
+    int slideWeird = 450;
 
     private Follower follower;
     private final Pose startPose = new Pose(134.937, 78.948, Math.toRadians(0));
@@ -58,7 +58,7 @@ public class NoPreSubmersible extends LinearOpMode {
                 break;
             case 0:
                 follower.followPath(goToTwo);
-                claw.openClaw();
+                //claw.openClaw();
                 setPathState(1);
                 break;
             case 1:
@@ -72,21 +72,21 @@ public class NoPreSubmersible extends LinearOpMode {
             case 2:
                 if (follower.atParametricEnd()) {
                     follower.followPath(pushLast);
-                    claw.closeClaw();
+                    //claw.closeClaw();
                     panningServo.moveSpecific(panningPick);
                     setPathState(3);
                 }
                 break;
             case 3:
                 if (pathTimer.getElapsedTime() > 550) {
-                    claw.openClaw();
+                    //claw.openClaw();
                     setPathState(5);
                 }
                 break;
             case 5:
                 if (follower.getCurrentTValue() > 0.8) {
                     follower.breakFollowing();
-                    claw.closeClaw();
+                    //claw.closeClaw();
                     waitTimer(250);
                     panningServo.moveSpecific(panningScore);
                     orientation.moveOpposite();
@@ -106,7 +106,7 @@ public class NoPreSubmersible extends LinearOpMode {
                         updateImportant();
                     }
                     follower.followPath(back);
-                    claw.openClaw();
+                    //claw.openClaw();
                     orientation.moveNormal();
                     panning.setTargetPos(0);
                     panningServo.moveSpecific(panningPick);
@@ -117,7 +117,7 @@ public class NoPreSubmersible extends LinearOpMode {
             case 7:
                 if (follower.getCurrentTValue() > 0.95) {
                     follower.breakFollowing();
-                    claw.closeClaw();
+                    //claw.closeClaw();
                     waitTimer(250);
                     follower.followPath(hang);
                     orientation.moveOpposite();
@@ -348,15 +348,14 @@ public class NoPreSubmersible extends LinearOpMode {
         // Get things from hardware map
         slides = new PIDFSlide(hardwareMap);
         panning = new PIDFPanning(hardwareMap);
-        claw = new Claw(hardwareMap);
+        //claw = new Claw(hardwareMap);
         pitching = new Pitching(hardwareMap);
         orientation = new Orientation(hardwareMap);
         panningServo = new PanningServo(hardwareMap);
-        light = new Light(hardwareMap);
+        //light = new Light(hardwareMap);
 
         // Set up follower
-        Constants.setConstants(FConstants.class, LConstants.class);
-        follower = new Follower(hardwareMap);
+        follower = new Follower(hardwareMap, FConstants.class, LConstants.class);
         follower.setMaxPower(0.95);
         buildPaths();
 
@@ -365,13 +364,13 @@ public class NoPreSubmersible extends LinearOpMode {
         waitTimer = new Timer();
 
         // Place parts in initial positions
-        claw.closeClaw(); // Closed claw
-        pitching.moveUp(); // Pitching UP
+        //claw.closeClaw(); // Closed claw
+        pitching.moveUp(); // Pitching UPa
         orientation.moveNormal(); // Orientation at normal pos
 
         panning.setTargetPos(0);
         slides.setTargetPos(0);
-        light.goToBlue();
+        //light.goToBlue();
 
         // Set path state to initial
         setPathState(0);

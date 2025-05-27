@@ -23,7 +23,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.constants.LConstants;
 public class LimelightTest2 extends OpMode {
     private Limelight3A limelight;
     private PIDFSlide slides;
-    private Orientation orientation;
+    //private Orientation orientation;
     private Pitching pitching;
 
     private Follower follower;
@@ -43,15 +43,13 @@ public class LimelightTest2 extends OpMode {
     @Override
     public void init() {
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
-        orientation = new Orientation(hardwareMap);
+        //orientation = new Orientation(hardwareMap);
         pitching = new Pitching(hardwareMap);
-        orientation = new Orientation(hardwareMap);
         slides = new PIDFSlide(hardwareMap);
 
         pitching.moveUp();
 
-        Constants.setConstants(FConstants.class, LConstants.class);
-        follower = new Follower(hardwareMap);
+        follower = new Follower(hardwareMap, FConstants.class, LConstants.class);
         follower.setStartingPose(startPose);
         follower.startTeleopDrive();
 
@@ -88,7 +86,7 @@ public class LimelightTest2 extends OpMode {
 
             telemetry.addData("offsetX: ", offsetX);
             telemetry.addData("offsetY: ", offsetY);
-            telemetry.addData("orientation: ", orientation);
+            //telemetry.addData("orientation: ", orientation);
             telemetry.addData("latency: ", result.getCaptureLatency());
             telemetry.addData("uhh", result.getPipelineType());
             telemetry.addData("valid", result.isValid());

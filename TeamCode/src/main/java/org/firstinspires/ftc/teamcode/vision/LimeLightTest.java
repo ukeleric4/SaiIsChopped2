@@ -64,8 +64,7 @@ public class LimeLightTest extends LinearOpMode {
         claw.openClaw();
         panning.moveSpecific(0.5);
 
-        Constants.setConstants(FConstants.class, LConstants.class);
-        follower = new Follower(hardwareMap);
+        follower = new Follower(hardwareMap, FConstants.class, LConstants.class);
         follower.setStartingPose(startPose);
         follower.startTeleopDrive();
 

@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.parts;
 
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.ServoControllerEx;
 
 public class PanningServo {
     public Servo panning;

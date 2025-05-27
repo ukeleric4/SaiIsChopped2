@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.parts;
 
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.ServoController;
 
 public class Pitching {
     public Servo pitching;
@@ -11,11 +12,11 @@ public class Pitching {
     }
 
     public void moveUp() {
-        pitching.setPosition(1.0);
+        pitching.setPosition(0);
     }
 
     public void moveDown() {
-        pitching.setPosition(0);
+        pitching.setPosition(1);
     }
 
     public double getPosition() { return pitching.getPosition(); }

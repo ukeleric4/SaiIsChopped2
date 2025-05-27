@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 
+import org.firstinspires.ftc.teamcode.parts.PanningServo;
 import org.firstinspires.ftc.teamcode.parts.Vision;
 
 @Config
@@ -26,6 +27,8 @@ public class PIDFSlideLimelight extends LinearOpMode {
     private DcMotorEx motor2;
     private double power;
 
+    private PanningServo panningServo;
+
     @Override
     public void runOpMode() throws InterruptedException {
         controller = new PIDController(p, i, d);
@@ -33,12 +36,17 @@ public class PIDFSlideLimelight extends LinearOpMode {
         motor1 = hardwareMap.get(DcMotorEx.class, "slide1");
         motor2 = hardwareMap.get(DcMotorEx.class, "slide2");
 
+        motor2.setDirection(DcMotorEx.Direction.REVERSE);
+
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
-        limelight.pipelineSwitch(1);
-        limelight.start();
+        panningServo = new PanningServo(hardwareMap);
         waitForStart();
 
+        limelight.start();
+        limelight.pipelineSwitch(0);
+
         while (opModeIsActive()) {
+                panningServo.moveUp();
                 LLResult result = limelight.getLatestResult();
                 controller.setPID(p, i, d);
                 int motorPos = motor2.getCurrentPosition();
@@ -69,8 +77,14 @@ public class PIDFSlideLimelight extends LinearOpMode {
                     telemetry.addData("y result: ", result.getTy());
                 }
 
-                motor1.setPower(power);
-                motor2.setPower(power);
+                if (result == null) {
+                    limelight.close();
+                    limelight.start();
+                    limelight.pipelineSwitch(0);
+                }
+
+                motor1.setPower(-power);
+                motor2.setPower(-power);
 
                 telemetry.addData("Target Position: ", target);
                 telemetry.addData("Current Position: ", motor2.getCurrentPosition());

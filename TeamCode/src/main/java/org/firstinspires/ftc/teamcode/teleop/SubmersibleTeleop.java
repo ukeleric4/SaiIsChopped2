@@ -29,6 +29,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.*;
 @TeleOp
 public class SubmersibleTeleop extends LinearOpMode {
     private Limelight3A limelight;
+    private PIDFPanning thosewhoknow;
     private PIDFPanning panningMotor;
     private PIDFSlide slides;
     private Claw claw;

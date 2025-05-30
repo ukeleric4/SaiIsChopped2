@@ -18,12 +18,14 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import org.firstinspires.ftc.teamcode.parts.Claw;
 import org.firstinspires.ftc.teamcode.parts.LiatClaw;
 import org.firstinspires.ftc.teamcode.parts.LiatOrientation;
+import org.firstinspires.ftc.teamcode.parts.Light;
 import org.firstinspires.ftc.teamcode.parts.Orientation;
 import org.firstinspires.ftc.teamcode.parts.PIDFPanning;
 import org.firstinspires.ftc.teamcode.parts.PIDFSlide;
 import org.firstinspires.ftc.teamcode.parts.PanningServo;
 import org.firstinspires.ftc.teamcode.parts.Pitching;
 import org.firstinspires.ftc.teamcode.parts.SpecimenArm;
+import org.firstinspires.ftc.teamcode.parts.SpecimenArm2;
 import org.firstinspires.ftc.teamcode.parts.Sweeping;
 import org.firstinspires.ftc.teamcode.pedroPathing.constants.FConstants;
 import org.firstinspires.ftc.teamcode.pedroPathing.constants.LConstants;
@@ -38,11 +40,11 @@ public class SixSpec extends LinearOpMode {
     public PanningServo panningServo;
     public Sweeping sweeping;
     private Limelight3A limelight;
-    //public Light light;
-
+    private Light light;
     private LiatOrientation liatOrientation;
     private LiatClaw liatClaw;
-    private SpecimenArm specimenArm;
+    private SpecimenArm2 specimenArm;
+    private PIDFPanning panning;
 
     DcMotor fl;
     DcMotor fr;
@@ -69,6 +71,7 @@ public class SixSpec extends LinearOpMode {
 
     private boolean updateSigma = true;
     private boolean sigmaSlide = false;
+    private double sigmaOrientation = 0;
 
     private Follower follower;
     private final Pose startPose = new Pose(132, 80, Math.toRadians(180));
@@ -81,38 +84,43 @@ public class SixSpec extends LinearOpMode {
     public void autonomousPathUpdate() {
         switch (pathState) {
             case 0:
-                updateSigma = false;
-                pitching.moveDown();
+                pitching.moveUp();
+                liatOrientation.moveScore();
+                panning.setPower(-1);
                 panningServo.moveSpecific(0.5);
                 claw.openClaw();
+                waitTimer(500);
                 specimenArm.moveSpecific(0.725);
+                slides.setTargetPos(slideScore1);
+                panningServo.moveSpecific(0.5);
                 follower.followPath(line1, true);
+                waitTimer(500);
+                panning.setPower(0);
                 setPathState(42069);
                 break;
             case 42069:
-                if (follower.getCurrentTValue() > 0.95) {
+                if (follower.getCurrentTValue() > 0.925 && follower.getTranslationalError().getMagnitude() < 2) {
                     specimenArm.scorePush();
-                }
-                if (follower.getCurrentTValue() > 0.975) {
-                    liatClaw.openClaw();
-                    updateSigma = true;
-                    slides.setTargetPos(slideScore1);
                     follower.followPath(line420);
-                    pitching.moveUp();
-                    panningServo.moveSpecific(0.5);
+                    waitTimer(250);
+                    panningServo.moveDown();
+                    liatClaw.openClaw();
                     setPathState(420);
                 }
                 break;
             case 420:
-                if (follower.getCurrentTValue() > 0.5) {
-                    follower.breakFollowing();
-                    runTracking();
+                if (!follower.isBusy() && follower.getVelocity().getMagnitude() < 0.5) {
+                    waitTimer(500);
+                    pitching.moveDown();
+                    waitTimer(250);
+                    claw.closeClaw();
+                    waitTimer(250);
+                    pitching.moveUp();
                     slides.setTargetPos(0);
                     panningServo.moveSpecific(0.5);
                     follower.resumePathFollowing();
                     follower.followPath(line69, true);
                     follower.update();
-                    waitTimer(100);
                     pitching.moveUp();
                     setPathState(1);
                 }
@@ -170,7 +178,7 @@ public class SixSpec extends LinearOpMode {
                 }
                 break;
             case 7:
-                if (follower.getCurrentTValue() > 0.65) {
+                if (follower.getCurrentTValue() > 0.75) {
                     sweeping.sweeperUp();
                 }
                 if (!follower.isBusy()) {
@@ -189,9 +197,11 @@ public class SixSpec extends LinearOpMode {
                 }
                 break;
             case 8:
+                if (follower.getCurrentTValue() > 0.85) {
+                    liatClaw.closeClaw();
+                }
                 if (follower.atParametricEnd() || follower.getVelocity().getMagnitude() < 0.25) {
                     panningServo.moveDown();
-                    liatClaw.closeClaw();
                     specimenArm.score();
                     follower.followPath(line9);
                     setPathState(9);
@@ -328,9 +338,12 @@ public class SixSpec extends LinearOpMode {
                 }
                 if (follower.getCurrentTValue() > 0.98 && follower.getTranslationalError().getMagnitude() < 2) {
                     specimenArm.scorePush();
+                    waitTimer(500);
                     setPathState(18);
                 }
                 break;
+            case 18:
+                requestOpModeStop();
         }
     }
 
@@ -340,22 +353,11 @@ public class SixSpec extends LinearOpMode {
     }
 
     public void buildPaths() {
-        line1 = follower.pathBuilder()
-                .addPath(
-                        new BezierLine(
-                                new Point(132.000, 80.000, Point.CARTESIAN),
-                                new Point(96, 76.170, Point.CARTESIAN)
-                        )
-                )
-                .setConstantHeadingInterpolation(Math.toRadians(180))
-                .setZeroPowerAccelerationMultiplier(10)
-                .build();
-
         line2 = follower.pathBuilder()
                 .addPath(
                         new BezierCurve(
                                 new Point(132, 114, Point.CARTESIAN),
-                                new Point(106, 112, Point.CARTESIAN)
+                                new Point(110, 112, Point.CARTESIAN)
                         )
                 )
                 .setLinearHeadingInterpolation(Math.toRadians(45), Math.toRadians(135))
@@ -364,7 +366,7 @@ public class SixSpec extends LinearOpMode {
         line3 = follower.pathBuilder()
                 .addPath(
                         new BezierLine(
-                                new Point(106, 112, Point.CARTESIAN),
+                                new Point(110, 112, Point.CARTESIAN),
                                 new Point(125.282, 114, Point.CARTESIAN)
                         )
                 )
@@ -375,7 +377,7 @@ public class SixSpec extends LinearOpMode {
                 .addPath(
                         new BezierLine(
                                 new Point(125.282, 114, Point.CARTESIAN),
-                                new Point(100, 120, Point.CARTESIAN)
+                                new Point(110, 122, Point.CARTESIAN)
                         )
                 )
                 .setLinearHeadingInterpolation(Math.toRadians(45), Math.toRadians(135))
@@ -384,7 +386,7 @@ public class SixSpec extends LinearOpMode {
         line5 = follower.pathBuilder()
                 .addPath(
                         new BezierLine(
-                                new Point(100, 120, Point.CARTESIAN),
+                                new Point(110, 122, Point.CARTESIAN),
                                 new Point(125.653, 122, Point.CARTESIAN)
                         )
                 )
@@ -395,7 +397,7 @@ public class SixSpec extends LinearOpMode {
                 .addPath(
                         new BezierLine(
                                 new Point(125.653, 122, Point.CARTESIAN),
-                                new Point(105, 132, Point.CARTESIAN)
+                                new Point(107.5, 132, Point.CARTESIAN)
                         )
                 )
                 .setLinearHeadingInterpolation(Math.toRadians(45), Math.toRadians(135))
@@ -404,7 +406,7 @@ public class SixSpec extends LinearOpMode {
         line7 = follower.pathBuilder()
                 .addPath(
                         new BezierLine(
-                                new Point(105, 132, Point.CARTESIAN),
+                                new Point(107.5, 132, Point.CARTESIAN),
                                 new Point(124.541, 130, Point.CARTESIAN)
                         )
                 )
@@ -415,8 +417,7 @@ public class SixSpec extends LinearOpMode {
                 .addPath(
                         new BezierCurve(
                                 new Point(124.541, 130, Point.CARTESIAN),
-                                new Point(122.502, 113.977, Point.CARTESIAN),
-                                new Point(120, 117, Point.CARTESIAN)
+                                new Point(120, 122.5, Point.CARTESIAN)
                         )
                 )
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(180))
@@ -426,8 +427,7 @@ public class SixSpec extends LinearOpMode {
         line67 = follower.pathBuilder()
                 .addPath(
                         new BezierCurve(
-                                new Point(120, 117, Point.CARTESIAN),
-                                new Point(122.502, 113.977, Point.CARTESIAN),
+                                new Point(120, 122.5, Point.CARTESIAN),
                                 new Point(129, 115, Point.CARTESIAN)
                         )
                 )
@@ -449,7 +449,7 @@ public class SixSpec extends LinearOpMode {
                 .addPath(
                         new BezierCurve(
                                 new Point(100, 72.5, Point.CARTESIAN),
-                                new Point(128, 120, Point.CARTESIAN)
+                                new Point(128, 117.5, Point.CARTESIAN)
                         )
                 )
                 .setConstantHeadingInterpolation(Math.toRadians(180))
@@ -457,7 +457,7 @@ public class SixSpec extends LinearOpMode {
         line11 = follower.pathBuilder()
                 .addPath(
                         new BezierCurve(
-                                new Point(128, 120, Point.CARTESIAN),
+                                new Point(128, 117.5, Point.CARTESIAN),
                                 new Point(122.502, 70, Point.CARTESIAN),
                                 new Point(100, 72, Point.CARTESIAN)
                         )
@@ -467,7 +467,7 @@ public class SixSpec extends LinearOpMode {
         line12 = follower.pathBuilder()
                 .addPath(
                         new BezierCurve(
-                                new Point(128, 120, Point.CARTESIAN),
+                                new Point(128, 117.5, Point.CARTESIAN),
                                 new Point(122.502, 70, Point.CARTESIAN),
                                 new Point(100, 72, Point.CARTESIAN)
                         )
@@ -477,7 +477,7 @@ public class SixSpec extends LinearOpMode {
         line13 = follower.pathBuilder()
                 .addPath(
                         new BezierCurve(
-                                new Point(128, 120, Point.CARTESIAN),
+                                new Point(128, 117.5, Point.CARTESIAN),
                                 new Point(122.502, 70, Point.CARTESIAN),
                                 new Point(100, 72, Point.CARTESIAN)
                         )
@@ -487,7 +487,7 @@ public class SixSpec extends LinearOpMode {
         line14 = follower.pathBuilder()
                 .addPath(
                         new BezierCurve(
-                                new Point(128, 120, Point.CARTESIAN),
+                                new Point(128, 117.5, Point.CARTESIAN),
                                 new Point(122.502, 70, Point.CARTESIAN),
                                 new Point(100, 72, Point.CARTESIAN)
                         )
@@ -498,6 +498,9 @@ public class SixSpec extends LinearOpMode {
 
     @Override
     public void runOpMode() {
+        limelight = hardwareMap.get(Limelight3A.class, "limelight");
+        limelight.setPollRateHz(100);
+        limelight.start();
         // Get things from hardware map
         slides = new PIDFSlide(hardwareMap);
         //panning = new PIDFPanning(hardwareMap);
@@ -506,7 +509,8 @@ public class SixSpec extends LinearOpMode {
         orientation = new Orientation(hardwareMap);
         panningServo = new PanningServo(hardwareMap);
         sweeping = new Sweeping(hardwareMap);
-        //light = new Light(hardwareMap);
+        light = new Light(hardwareMap);
+        panning = new PIDFPanning(hardwareMap);
 
         // Set up follower
         follower = new Follower(hardwareMap, FConstants.class, LConstants.class);
@@ -517,13 +521,8 @@ public class SixSpec extends LinearOpMode {
         waitTimer = new Timer();
 
         // Place parts in initial positions
-        pitching.moveUp();
-        orientation.moveNormal();
-        panningServo.moveUp();
-        sweeping.sweeperUp();
-        //claw.closeClaw();
+        light.goToWhite();
 
-        //panning.setTargetPos(0);
         slides.setTargetPos(0);
 
         fl = hardwareMap.get(DcMotor.class, "fl");
@@ -531,67 +530,103 @@ public class SixSpec extends LinearOpMode {
         bl = hardwareMap.get(DcMotor.class, "bl");
         br = hardwareMap.get(DcMotor.class, "br");
 
-        specimenArm = new SpecimenArm(hardwareMap);
+        specimenArm = new SpecimenArm2(hardwareMap);
         liatClaw = new LiatClaw(hardwareMap);
         liatOrientation = new LiatOrientation(hardwareMap);
 
-        liatOrientation.moveScore();
-        specimenArm.moveSpecific(0.4);
+        liatOrientation.moveSpecific(0.5);
+        specimenArm.moveSpecific(0.15);
         liatClaw.closeClaw();
 
 //        fl.setDirection(DcMotorSimple.Direction.REVERSE);
 //        bl.setDirection(DcMotorSimple.Direction.REVERSE);
 //        fr.setDirection(DcMotorSimple.Direction.FORWARD);
 //        br.setDirection(DcMotorSimple.Direction.FORWARD);
-        limelight = hardwareMap.get(Limelight3A.class, "limelight");
-        limelight.start();
-        limelight.pipelineSwitch(0);
         followerTime = new Timer();
 
         // Set path state to initial
         setPathState(0);
 
         while (opModeInInit()) {
+            panning.setTargetPos(1000);
+            slides.setPower(-0.2);
+            panning.updatePanning();
+            panning.update();
             telemetry.addData("X", xValue);
             telemetry.addData("Y", yValue);
+            telemetry.addData("Orientation", sigmaOrientation);
             if (gamepad1.x) {
-                xValue -= 0.5;
+                xValue -= 0.25;
                 sleep(200);
             }
             if (gamepad1.b) {
-                xValue += 0.5;
+                xValue += 0.25;
                 sleep(200);
             }
             if (gamepad1.y) {
-                yValue += 0.5;
+                yValue += 0.25;
                 sleep(200);
             }
             if (gamepad1.a) {
-                yValue -= 0.5;
+                yValue -= 0.25;
+                sleep(200);
+            }
+            if (gamepad1.dpad_right) {
+                sigmaOrientation += 0.1;
+                sleep(200);
+            }
+            if (gamepad1.dpad_left) {
+                sigmaOrientation -= 0.1;
                 sleep(200);
             }
             telemetry.update();
         }
 
         waitForStart();
+        limelight.pipelineSwitch(0);
         pitching.moveUp();
-        orientation.moveNormal();
+        orientation.moveSpecific(sigmaOrientation);
         panningServo.moveUp();
         sweeping.sweeperUp();
         xValue *= 1.1;
+        if (yValue > 7) {
+            yValue -= 1.5;
+        } else if (yValue > 6) {
+            yValue -= 0.75;
+        } else if (yValue > 5) {
+            yValue -= 0.5;
+        } else if (yValue < 2.5) {
+            yValue += 1;
+        }
 
-        pickUpPose = new Pose(105, 74.75 + xValue, Math.toRadians(180));
+
+        if (xValue < 0.5) {
+            pickUpPose = new Pose(110.5 - yValue, 74 + xValue, Math.toRadians(180));
+        } else if (xValue > 0.5) {
+            pickUpPose = new Pose(110.5 - yValue, 74.75  + xValue, Math.toRadians(180));
+        }
+
         slideScore1 += (int) (yValue * 50);
 
+        line1 = follower.pathBuilder()
+                .addPath(
+                        new BezierLine(
+                                new Point(132.000, 80.000, Point.CARTESIAN),
+                                new Point(96, 76.170, Point.CARTESIAN)
+                        )
+                )
+                .setConstantHeadingInterpolation(Math.toRadians(180))
+                .setZeroPowerAccelerationMultiplier(5)
+                .build();
         line420 = follower.pathBuilder()
                 .addPath(
                         new BezierLine(
-                                new Point(96, 76.17, Point.CARTESIAN),
+                                new Point(96, 76.170, Point.CARTESIAN),
                                 new Point(pickUpPose)
                         )
                 )
                 .setConstantHeadingInterpolation(Math.toRadians(180))
-                .setZeroPowerAccelerationMultiplier(1)
+                .setZeroPowerAccelerationMultiplier(1.5)
                 .setPathEndVelocityConstraint(0.01)
                 .build();
         line69 = follower.pathBuilder()
@@ -690,6 +725,14 @@ public class SixSpec extends LinearOpMode {
         br.setPower(power * 0.6);
         fr.setPower(-power * 0.8);
         bl.setPower(-power * 0.6);
+    }
+
+    public void runBackward(double power) {
+        double newPower = power;
+        fl.setPower(-newPower);
+        br.setPower(-newPower);
+        fr.setPower(-newPower);
+        bl.setPower(-newPower);
     }
 
     public void updateResults() {

@@ -101,20 +101,22 @@ public class BucketTeleop extends LinearOpMode {
         if (gamepad2.a) {
             follower.breakFollowing();
             updatePanning = true;
-            velocity = 1.0;
-            headingVelocity = 0.6;
             pitching.moveDown();
-            waitTimerFollowerUpdate(250);
+            waitTimerUpdate(250);
             claw.closeClaw();
-            waitTimerFollowerUpdate(150);
-            panningServo.moveSpecific(0.6);
+            waitTimerUpdate(150);
             pitching.moveUp();
             panningMotor.setTargetPos(0);
-            waitTimerFollowerUpdate(100);
+            waitTimerUpdate(100);
             follower.startTeleopDrive();
-            if (claw.getEncoderPosition() > 160) {
+            if (claw.getEncoderPosition() > 180) {
+                panningServo.moveSpecific(0.6);
+                velocity = 1.0;
+                headingVelocity = 0.6;
                 orientation.moveNormal();
                 slides.setTargetPos(0);
+            } else {
+                claw.openClaw();
             }
         }
 
@@ -157,6 +159,7 @@ public class BucketTeleop extends LinearOpMode {
             follower.startTeleopDrive();
             waitTimerUpdate(200);
             panningServo.moveDown();
+            waitTimerUpdate(250);
             slides.setTargetPos(0);
             while (slides.getCurrentPos() > 250) {
                 updateAll();
@@ -185,13 +188,8 @@ public class BucketTeleop extends LinearOpMode {
     }
 
     public void update() {
-        if (updatePanning) {
-            panningMotor.updatePanning();
-        }
         panningMotor.update();
-        if (panningMotor.getCurrentPos() < 0) {
-            panningMotor.resetEncoder();
-        }
+        panningMotor.updatePanning();
         slides.updateSlide();
         follower.setTeleOpMovementVectors(-gamepad1.left_stick_y * velocity, -gamepad1.left_stick_x * velocity, -gamepad1.right_stick_x * headingVelocity, true);
         follower.update();
@@ -208,10 +206,8 @@ public class BucketTeleop extends LinearOpMode {
     }
 
     public void updateImportant() {
-        if (updatePanning) {
-            panningMotor.updatePanning();
-        }
         panningMotor.update();
+        panningMotor.updatePanning();
         slides.updateSlide();
         follower.setTeleOpMovementVectors(-gamepad1.left_stick_y * velocity, -gamepad1.left_stick_x * velocity, -gamepad1.right_stick_x * headingVelocity, true);
         follower.update();

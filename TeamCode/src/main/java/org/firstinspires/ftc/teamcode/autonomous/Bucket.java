@@ -6,6 +6,7 @@ import com.pedropathing.pathgen.BezierCurve;
 import com.pedropathing.pathgen.BezierLine;
 import com.pedropathing.pathgen.PathChain;
 import com.pedropathing.pathgen.Point;
+import com.pedropathing.util.CustomPIDFCoefficients;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -33,10 +34,8 @@ public class Bucket extends LinearOpMode {
     public Light light;
 
     private Timer pathTimer, opmodeTimer, waitTimer;
-    int score = 1800;
+    int panningScore = 1800;
     int pick = 0;
-
-    double panningScore = 0.8;
 
     private boolean updatePanning = true;
 
@@ -53,144 +52,148 @@ public class Bucket extends LinearOpMode {
         switch (pathState) {
             case 0:
                 follower.followPath(line1, true);
-                panningServo.moveDown();
-                panning.setTargetPos(1800);
-                while (panning.getCurrentPos() < 1000) {
-                    updateSystems();
-                }
-                slides.setTargetPos(slideScore);
-                while (slides.getCurrentPos() < slideScore - 100) {
-                    updateSystems();
-                }
-                panningServo.moveUp();
-                waitTimer(250);
-                claw.openClaw();
-                waitTimer(250);
-                panningServo.moveDown();
-                waitTimer(250);
-                slides.setTargetPos(0);
                 orientation.moveNormal();
+                panning.setTargetPos(1800);
+                waitTimer(500);
+                slides.setTargetPos(slideScore);
+                panningServo.moveDown();
                 setPathState(1);
                 break;
             case 1:
-                follower.followPath(line2, true);
-                waitTimer(500);
-                panning.setTargetPos(0);
-                waitTimer(500);
-                slides.setTargetPos(625);
-                setPathState(2);
-                break;
-            case 2:
-                if (!follower.isBusy()) {
-                    updatePanning = false;
-                    pitching.moveDown();
-                    waitTimer(250);
-                    claw.closeClaw();
-                    waitTimer(250);
-                    pitching.moveUp();
-                    follower.followPath(line5, true);
-                    updatePanning = true;
-                    waitTimer(500);
-                    slides.setTargetPos(0);
-                    panningServo.moveDown();
-                    panning.setTargetPos(1800);
-                    while (panning.getCurrentPos() < 1000) {
-                        updateSystems();
-                    }
-                    slides.setTargetPos(slideScore);
-                    while (slides.getCurrentPos() < slideScore - 100) {
+                if (!follower.isBusy() && follower.getTranslationalError().getMagnitude() < 2) {
+                    while (slides.getCurrentPos() < 1300) {
                         updateSystems();
                     }
                     panningServo.moveUp();
-                    waitTimer(250);
+                    waitTimer(500);
                     claw.openClaw();
-                    waitTimer(250);
+                    waitTimer(500);
                     panningServo.moveDown();
                     waitTimer(250);
-                    slides.setTargetPos(0);
                     orientation.moveNormal();
+                    slides.setTargetPos(0);
+                    waitTimer(500);
+                    follower.followPath(line2, true);
+                    panning.setTargetPos(0);
+                    setPathState(2);
+                }
+                break;
+            case 2:
+                if (!follower.isBusy() && follower.getTranslationalError().getMagnitude() < 2) {
+                    while (panning.getCurrentPos() > 400) {
+                        updateSystems();
+                    }
+                    slides.setTargetPos(575);
+                    waitTimer(1000);
+                    pitching.moveDown();
+                    waitTimer(250);
+                    claw.closeClaw();
+                    follower.followPath(line3, true);
+                    waitTimer(250);
+                    pitching.moveUp();
+                    slides.setTargetPos(0);
+                    waitTimer(500);
+                    panning.setTargetPos(1800);
+                    waitTimer(500);
+                    slides.setTargetPos(slideScore);
                     setPathState(3);
                 }
                 break;
             case 3:
-                follower.followPath(line4, true);
-                waitTimer(500);
-                panning.setTargetPos(0);
-                waitTimer(500);
-                slides.setTargetPos(625);
-                setPathState(4);
-                break;
-            case 4:
-                if (!follower.isBusy()) {
-                    pitching.moveDown();
-                    waitTimer(250);
-                    claw.closeClaw();
-                    waitTimer(250);
-                    pitching.moveUp();
-                    follower.followPath(line5, true);
-                    waitTimer(500);
-                    slides.setTargetPos(0);
-                    panningServo.moveSpecific(0.5);
-                    panning.setTargetPos(1800);
-                    while (panning.getCurrentPos() < 1000) {
-                        updateSystems();
-                    }
-                    slides.setTargetPos(slideScore);
-                    while (slides.getCurrentPos() < slideScore - 100) {
+                if (!follower.isBusy() && follower.getTranslationalError().getMagnitude() < 2) {
+                    while (slides.getCurrentPos() < 1300) {
                         updateSystems();
                     }
                     panningServo.moveUp();
                     waitTimer(250);
                     claw.openClaw();
-                    waitTimer(250);
+                    waitTimer(500);
                     panningServo.moveDown();
                     waitTimer(250);
                     slides.setTargetPos(0);
-                    orientation.moveNormal();
+                    waitTimer(500);
+                    follower.followPath(line4, true);
+                    panning.setTargetPos(0);
+                    setPathState(4);
+                }
+                break;
+            case 4:
+                if (!follower.isBusy() && follower.getTranslationalError().getMagnitude() < 2) {
+                    while (panning.getCurrentPos() > 400) {
+                        updateSystems();
+                    }
+                    slides.setTargetPos(575);
+                    waitTimer(1000);
+                    pitching.moveDown();
+                    waitTimer(250);
+                    claw.closeClaw();
+                    follower.followPath(line5, true);
+                    waitTimer(250);
+                    pitching.moveUp();
+                    slides.setTargetPos(0);
+                    waitTimer(500);
+                    panning.setTargetPos(1800);
+                    waitTimer(500);
+                    slides.setTargetPos(slideScore);
                     setPathState(5);
                 }
                 break;
             case 5:
-                if (!follower.isBusy()) {
-                    follower.followPath(line6, true);
-                    waitTimer(500);
-                    panning.setTargetPos(0);
-                    waitTimer(500);
-                    slides.setTargetPos(575);
-                    orientation.moveSpecific(0.25);
-                    setPathState(6);
-                }
-                break;
-            case 6:
-                if (!follower.isBusy()) {
-                    updatePanning = false;
-                    pitching.moveDown();
-                    waitTimer(250);
-                    claw.closeClaw();
-                    waitTimer(250);
-                    pitching.moveUp();
-                    follower.followPath(line7, true);
-                    updatePanning = true;
-                    waitTimer(500);
-                    slides.setTargetPos(0);
-                    panningServo.moveDown();
-                    panning.setTargetPos(1800);
-                    while (panning.getCurrentPos() < 1000) {
-                        updateSystems();
-                    }
-                    slides.setTargetPos(slideScore);
-                    while (slides.getCurrentPos() < slideScore - 100) {
+                if (!follower.isBusy() && follower.getTranslationalError().getMagnitude() < 2) {
+                    while (slides.getCurrentPos() < 1300) {
                         updateSystems();
                     }
                     panningServo.moveUp();
                     waitTimer(250);
                     claw.openClaw();
-                    waitTimer(250);
+                    waitTimer(500);
                     panningServo.moveDown();
                     waitTimer(250);
                     slides.setTargetPos(0);
+                    waitTimer(500);
+                    follower.followPath(line6, true);
+                    panning.setTargetPos(0);
+                    setPathState(6);
+                }
+                break;
+            case 6:
+                if (!follower.isBusy() && follower.getTranslationalError().getMagnitude() < 2) {
+                    while (panning.getCurrentPos() > 400) {
+                        updateSystems();
+                    }
+                    slides.setTargetPos(590);
+                    orientation.moveSpecific(0.15);
+                    waitTimer(1000);
+                    pitching.moveDown();
+                    waitTimer(250);
+                    claw.closeClaw();
+                    follower.followPath(line7, true);
+                    waitTimer(250);
                     orientation.moveNormal();
-                    setPathState(69);
+                    pitching.moveUp();
+                    slides.setTargetPos(0);
+                    waitTimer(500);
+                    panning.setTargetPos(1800);
+                    waitTimer(500);
+                    slides.setTargetPos(slideScore);
+                    setPathState(7);
+                }
+                break;
+            case 7:
+                if (!follower.isBusy() && follower.getTranslationalError().getMagnitude() < 2) {
+                    while (slides.getCurrentPos() < 1300) {
+                        updateSystems();
+                    }
+                    panningServo.moveUp();
+                    waitTimer(250);
+                    claw.openClaw();
+                    waitTimer(500);
+                    panningServo.moveDown();
+                    waitTimer(250);
+                    slides.setTargetPos(0);
+                    waitTimer(1000);
+                    panning.setTargetPos(0);
+                    setPathState(8);
                 }
                 break;
         }
@@ -210,8 +213,7 @@ public class Bucket extends LinearOpMode {
                         )
                 )
                 .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(135))
-                .setZeroPowerAccelerationMultiplier(1)
-                .setPathEndTimeoutConstraint(750)
+                .setZeroPowerAccelerationMultiplier(2)
                 .build();
 
         line2 = follower.pathBuilder()
@@ -222,68 +224,62 @@ public class Bucket extends LinearOpMode {
                         )
                 )
                 .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180))
-                .setZeroPowerAccelerationMultiplier(1)
-                .setPathEndTimeoutConstraint(750)
+                .setZeroPowerAccelerationMultiplier(2)
                 .build();
 
         line3 = follower.pathBuilder()
                 .addPath(
                         new BezierLine(
                                 new Point(115, 21, Point.CARTESIAN),
-                                new Point(124, 22, Point.CARTESIAN)
+                                new Point(124, 20, Point.CARTESIAN)
                         )
                 )
                 .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(135))
-                .setZeroPowerAccelerationMultiplier(1)
-                .setPathEndTimeoutConstraint(750)
+                .setZeroPowerAccelerationMultiplier(2)
                 .build();
 
         line4 = follower.pathBuilder()
                 .addPath(
                         new BezierLine(
-                                new Point(124, 22, Point.CARTESIAN),
-                                new Point(115, 12, Point.CARTESIAN)
+                                new Point(124, 20, Point.CARTESIAN),
+                                new Point(115, 10.5, Point.CARTESIAN)
                         )
                 )
                 .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180))
-                .setZeroPowerAccelerationMultiplier(1)
-                .setPathEndTimeoutConstraint(750)
+                .setZeroPowerAccelerationMultiplier(2.5)
                 .build();
 
         line5 = follower.pathBuilder()
                 .addPath(
                         new BezierLine(
-                                new Point(115, 12, Point.CARTESIAN),
-                                new Point(124, 22, Point.CARTESIAN)
+                                new Point(115, 10.5, Point.CARTESIAN),
+                                new Point(124, 20, Point.CARTESIAN)
                         )
                 )
                 .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(135))
-                .setZeroPowerAccelerationMultiplier(1)
-                .setPathEndTimeoutConstraint(750)
+                .setZeroPowerAccelerationMultiplier(2)
                 .build();
 
         line6 = follower.pathBuilder()
                 .addPath(
                         new BezierLine(
-                                new Point(124, 22, Point.CARTESIAN),
+                                new Point(124, 20, Point.CARTESIAN),
                                 new Point(112, 8, Point.CARTESIAN)
                         )
                 )
-                .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(230))
-                .setZeroPowerAccelerationMultiplier(1)
-                .setPathEndTimeoutConstraint(750)
+                .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(212.5))
+                .setZeroPowerAccelerationMultiplier(2)
                 .build();
 
         line7 = follower.pathBuilder()
                 .addPath(
                         new BezierLine(
                                 new Point(112.000, 8, Point.CARTESIAN),
-                                new Point(124, 22, Point.CARTESIAN)
+                                new Point(124, 20, Point.CARTESIAN)
                         )
                 )
-                .setLinearHeadingInterpolation(Math.toRadians(230), Math.toRadians(135))
-                .setZeroPowerAccelerationMultiplier(1)
-                .setPathEndTimeoutConstraint(750)
+                .setLinearHeadingInterpolation(Math.toRadians(212.5), Math.toRadians(135))
+                .setZeroPowerAccelerationMultiplier(2)
                 .build();
     }
 
@@ -301,7 +297,7 @@ public class Bucket extends LinearOpMode {
 
         // Set up follower
         follower = new Follower(hardwareMap, FConstants.class, LConstants.class);
-        follower.setMaxPower(0.75);
+        follower.setSecondaryHeadingPIDF(new CustomPIDFCoefficients(2.5,0,0.0001,0));
         buildPaths();
 
         pathTimer = new Timer();
@@ -335,24 +331,24 @@ public class Bucket extends LinearOpMode {
         while (opModeIsActive()) {
             autonomousPathUpdate();
             follower.update();
-            if (updatePanning) {
-                panning.updatePanning();
-            }
             panning.update();
-            if (panning.getCurrentPos() < 0) {
-                panning.resetEncoder();
-            }
+            panning.updatePanning();
             slides.updateSlide();
 
             // Feedback to Driver Hub
             telemetry.addData("path state", pathState);
             telemetry.addData("x", follower.getPose().getX());
             telemetry.addData("y", follower.getPose().getY());
-            telemetry.addData("heading", follower.getPose().getHeading());
+            telemetry.addData("heading", follower.headingError);
+            telemetry.addData("path: ", follower.getCurrentPath());
+            telemetry.addData("closest point: ", follower.getClosestPose());
+            telemetry.addData("translational: ", follower.getTranslationalError().getMagnitude());
             telemetry.addData("T value: ", follower.getCurrentTValue());
-            telemetry.addData("Panning value: ", panning.getCurrentPos());
+            //telemetry.addData("Panning value: ", panning.getCurrentPos());
             telemetry.addData("Slide target: ", slides.getTargetPos());
             telemetry.addData("Slide pos: ", slides.getCurrentPos());
+            telemetry.addData("panning pos: ", panning.getCurrentPos());
+            telemetry.addData("panning target: ", panning.getTargetPos());
             telemetry.update();
         }
     }
@@ -370,13 +366,8 @@ public class Bucket extends LinearOpMode {
     }
 
     public void updateSystems() {
-        if (updatePanning) {
-            panning.updatePanning();
-        }
         panning.update();
-        if (panning.getCurrentPos() < 0) {
-            panning.resetEncoder();
-        }
+        panning.updatePanning();
         slides.updateSlide();
         follower.update();
     }

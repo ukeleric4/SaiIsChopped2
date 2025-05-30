@@ -40,7 +40,7 @@ public class ServoTest extends LinearOpMode {
         pitching = new Pitching(hardwareMap);
         sweeping = new Sweeping(hardwareMap);
         //breakPad = new BrakePad(hardwareMap);
-        hanging = new HangingServos(hardwareMap);
+        //hanging = new HangingServos(hardwareMap);
         liatClaw = new LiatClaw(hardwareMap);
         liatOrientation = new LiatOrientation(hardwareMap);
         liatPanningServo = new LiatPanningServo(hardwareMap);

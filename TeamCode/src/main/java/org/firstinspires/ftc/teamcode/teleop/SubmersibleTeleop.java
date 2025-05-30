@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 import org.firstinspires.ftc.teamcode.parts.Claw;
+import org.firstinspires.ftc.teamcode.parts.HeadingPid;
 import org.firstinspires.ftc.teamcode.parts.LiatClaw;
 import org.firstinspires.ftc.teamcode.parts.LiatOrientation;
 import org.firstinspires.ftc.teamcode.parts.Light;
@@ -20,8 +21,10 @@ import org.firstinspires.ftc.teamcode.parts.PIDFSlide;
 import org.firstinspires.ftc.teamcode.parts.PanningServo;
 import org.firstinspires.ftc.teamcode.parts.Pitching;
 import org.firstinspires.ftc.teamcode.parts.SpecimenArm;
+import org.firstinspires.ftc.teamcode.parts.SpecimenArm2;
 import org.firstinspires.ftc.teamcode.pedroPathing.constants.FConstants;
 import org.firstinspires.ftc.teamcode.pedroPathing.constants.LConstants;
+import org.firstinspires.ftc.teamcode.pedroPathing.*;
 
 @TeleOp
 public class SubmersibleTeleop extends LinearOpMode {
@@ -32,15 +35,19 @@ public class SubmersibleTeleop extends LinearOpMode {
     private Orientation orientation;
     private PanningServo panningServo;
     private Pitching pitching;
-    private SpecimenArm specimenArm;
+    private SpecimenArm2 specimenArm;
     private LiatOrientation liatOrientation;
     private LiatClaw liatClaw;
+    private HeadingPid headingPid;
     //private Light light;
 
     private double velocity = 1.0;
     private double headingVelocity = 0.4;
-    private boolean updatePanning = true;
-    private boolean robotCentric;
+    private boolean updatePanning = false;
+    private boolean robotCentric = true;
+
+    private boolean headingLock = false;
+    private double headingCorrection;
 
     private Follower follower;
     private final Pose startPose = new Pose(0, 0, 0);
@@ -71,13 +78,15 @@ public class SubmersibleTeleop extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
+        limelight.setPollRateHz(100);
+        limelight.start();
         panningMotor = new PIDFPanning(hardwareMap);
         slides = new PIDFSlide(hardwareMap);
         claw = new Claw(hardwareMap);
         orientation = new Orientation(hardwareMap);
         panningServo = new PanningServo(hardwareMap);
         pitching = new Pitching(hardwareMap);
-        specimenArm = new SpecimenArm(hardwareMap);
+        specimenArm = new SpecimenArm2(hardwareMap);
         liatClaw = new LiatClaw(hardwareMap);
         liatOrientation = new LiatOrientation(hardwareMap);
 
@@ -96,18 +105,24 @@ public class SubmersibleTeleop extends LinearOpMode {
         fr.setDirection(DcMotorSimple.Direction.REVERSE);
         br.setDirection(DcMotorSimple.Direction.REVERSE);
 
+        headingPid = new HeadingPid();
+
         followerTime = new Timer();
 
+        specimenArm.panning1.disable();
+        specimenArm.panning2.enable();
+
         waitForStart();
-        limelight.start();
+        limelight.pipelineSwitch(0);
         followerTime.resetTimer();
         opModeTimer.resetTimer();
         waitTimer.resetTimer();
         pitching.moveUp();
         claw.openClaw();
-        panningServo.moveDown();
+        panningServo.moveUp();
         orientation.moveNormal();
-        liatOrientation.moveScore();
+        liatOrientation.movePick();
+        specimenArm.pickUp();
         liatClaw.openClaw();
 
         while (opModeIsActive()) {
@@ -118,20 +133,6 @@ public class SubmersibleTeleop extends LinearOpMode {
     }
 
     public void slidePos() {
-        if (gamepad1.y) {
-            velocity = 0.25;
-            headingVelocity = 0.25;
-            updatePanning = false;
-            robotCentric = true;
-            panningMotor.setTargetPos(0);
-            pitching.moveUp();
-            slides.setTargetPos(750);
-            panningServo.moveSpecific(0.5);
-            claw.openClaw();
-            waitTimerUpdate(500);
-            panningMotor.setPower(0);
-        }
-
         if (gamepad2.y) {
             if (slides.getCurrentPos() < 100 || slides.getTargetPos() == 750) {
                 velocity = 0.25;
@@ -142,11 +143,14 @@ public class SubmersibleTeleop extends LinearOpMode {
                 panningMotor.setTargetPos(0);
                 pitching.moveUp();
                 slides.setTargetPos(750);
-                velocity = 0.25;
-                headingVelocity = 0.25;
                 claw.openClaw();
-                panningServo.moveDown();
+                if (panningServo.getPosition() == 0) {
+                    panningServo.moveUp();
+                } else {
+                    panningServo.moveDown();
+                }
                 panningMotor.setPower(0);
+                waitTimerUpdate(500);
             }
         }
     }
@@ -159,11 +163,13 @@ public class SubmersibleTeleop extends LinearOpMode {
                 updateAll();
             }
             slides.setTargetPos(1250);
+            specimenArm.scorePush();
+            liatOrientation.movePick();
         }
         if (gamepad1.left_stick_button && gamepad2.left_stick_button) {
             slides.setTargetPos(0);
             waitTimerUpdate(1000);
-            panningMotor.setTargetPos(0);
+            specimenArm.pickUp();
         }
     }
 
@@ -191,17 +197,16 @@ public class SubmersibleTeleop extends LinearOpMode {
         if (gamepad2.a) {
             updatePanning = false;
             follower.breakFollowing();
-            velocity = 1.0;
-            headingVelocity = 0.4;
             pitching.moveDown();
-            waitTimerUpdate(250);
+            waitTimerUpdate(100);
             claw.closeClaw();
-            waitTimerUpdate(150);
+            waitTimerUpdate(250);
             pitching.moveUp();
             panningMotor.setTargetPos(0);
-            waitTimerUpdate(100);
             follower.startTeleopDrive();
-            if (claw.getEncoderPosition() > 160) {
+            if (claw.getEncoderPosition() > 180) {
+                velocity = 1.0;
+                headingVelocity = 0.4;
                 panningServo.moveSpecific(0.6);
                 orientation.moveNormal();
                 slides.setTargetPos(0);
@@ -225,7 +230,7 @@ public class SubmersibleTeleop extends LinearOpMode {
             claw.openClaw();
             waitTimerUpdate(500);
             panningMotor.setPower(-1);
-            panningServo.moveSpecific(0.5);
+            panningServo.moveUp();
             waitTimerUpdate(500);
             panningMotor.setPower(0);
 
@@ -234,27 +239,38 @@ public class SubmersibleTeleop extends LinearOpMode {
 
     public void score() {
         if (gamepad2.left_bumper) {
+            specimenArm.panning1.disable();
             liatClaw.openClaw();
             specimenArm.scorePush();
         }
 
         if (gamepad2.right_trigger > 0.8) {
+            specimenArm.panning1.disable();
+            headingVelocity = 0.25;
+            velocity = 0.75;
             liatOrientation.movePick();
+            if (specimenArm.panning2.getPosition() == 1) {
+                specimenArm.moveSpecific(0.55);
+                waitTimerUpdate(400);
+            } else if (specimenArm.panning1.getPosition() == 0.75) {
+                specimenArm.moveSpecific(0.4);
+                waitTimerUpdate(400);
+            }
             specimenArm.pickUp();
             liatClaw.openClaw();
         }
 
         if (gamepad2.right_bumper) {
-            velocity = 1;
+            updatePanning = false;
+            slides.setPower(0);
+            panningMotor.setPower(0);
+            velocity = 0.6;
             headingVelocity = 0.4;
             liatClaw.closeClaw();
             waitTimerUpdate(500);
-            slides.setPower(0);
-            panningMotor.setPower(0);
             specimenArm.score();
-            waitTimerUpdate(500);
             liatOrientation.moveScore();
-            panningServo.moveSpecific(0.5);
+            panningServo.moveUp();
             pitching.moveUp();
         }
     }
@@ -266,6 +282,40 @@ public class SubmersibleTeleop extends LinearOpMode {
         if (gamepad2.x) {
             orientation.moveSideways();
         }
+
+        if (gamepad1.left_trigger > 0.8) {
+            velocity = 0.3;
+        }
+        if (gamepad1.right_trigger > 0.8) {
+            velocity = 1;
+        }
+
+        if (gamepad1.a) {
+            specimenArm.panning1.disable();
+        }
+        if (gamepad1.y) {
+            specimenArm.panning1.enable();
+        }
+    }
+
+    public void checkHeadingLock() {
+        if (headingLock) {
+            double targetHeading = Math.toRadians(180);
+            double currentHeading = follower.getPose().getHeading();
+            double headingErr = targetHeading - currentHeading;
+            headingErr = Math.IEEEremainder(headingErr, 2 * Math.PI);
+
+            if (Math.abs(headingErr) < Math.toRadians(2)) {
+                headingCorrection = 0;
+            } else {
+                headingCorrection = headingPid.calculate(headingErr, targetHeading);
+            }
+
+            follower.setTeleOpMovementVectors(-gamepad1.left_stick_y * velocity, gamepad1.left_stick_x * velocity, headingCorrection, robotCentric);
+
+        } else {
+            follower.setTeleOpMovementVectors(-gamepad1.left_stick_y * velocity, -gamepad1.left_stick_x * velocity, -gamepad1.right_stick_x * headingVelocity, robotCentric);
+        }
     }
 
     public void update() {
@@ -274,7 +324,7 @@ public class SubmersibleTeleop extends LinearOpMode {
             panningMotor.updatePanning();
         }
         slides.updateSlide();
-        follower.setTeleOpMovementVectors(-gamepad1.left_stick_y * velocity, -gamepad1.left_stick_x * velocity, -gamepad1.right_stick_x * headingVelocity, robotCentric);
+        checkHeadingLock();
         follower.update();
         telemetry.addData("Slide pos: ", slides.getCurrentPos());
         telemetry.addData("Slide target: ", slides.getTargetPos());
@@ -298,13 +348,14 @@ public class SubmersibleTeleop extends LinearOpMode {
             panningMotor.updatePanning();
         }
         slides.updateSlide();
-        follower.setTeleOpMovementVectors(-gamepad1.left_stick_y * velocity, -gamepad1.left_stick_x * velocity, -gamepad1.right_stick_x * headingVelocity, robotCentric);
+        checkHeadingLock();
+        //follower.setTeleOpMovementVectors(-gamepad1.left_stick_y * velocity, -gamepad1.left_stick_x * velocity, -gamepad1.right_stick_x * headingVelocity, !robotCentric);
         follower.update();
         telemetry.update();
     }
 
     public void updateFollower() {
-        follower.setTeleOpMovementVectors(-gamepad1.left_stick_y * velocity, -gamepad1.left_stick_x * velocity, -gamepad1.right_stick_x * headingVelocity, robotCentric);
+        follower.setTeleOpMovementVectors(-gamepad1.left_stick_y * velocity, -gamepad1.left_stick_x * velocity, -gamepad1.right_stick_x * headingVelocity, !robotCentric);
         follower.update();
     }
 
@@ -348,7 +399,6 @@ public class SubmersibleTeleop extends LinearOpMode {
                 pitching.moveUp();
                 if (claw.getEncoderPosition() > 160) {
                     panningServo.moveUp();
-                    orientation.moveNormal();
                     slides.setTargetPos(0);
                     velocity = 1;
                     headingVelocity = 0.4;

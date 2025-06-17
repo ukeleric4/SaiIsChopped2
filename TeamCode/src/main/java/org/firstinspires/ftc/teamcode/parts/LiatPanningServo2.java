@@ -9,15 +9,17 @@ public class LiatPanningServo2 {
     public ServoImplEx panning2;
     public ServoControllerEx controller;
 
+
     public LiatPanningServo2(HardwareMap hw) {
         panning2 = hw.get(ServoImplEx.class, "leftPanning");
     }
+
     public void moveUp() {
         panning2.setPosition(0.775);
     }
 
     public void moveDown() {
-        panning2.setPosition(0.13);
+        panning2.setPosition(0.11);
     }
 
     public double getPosition() {

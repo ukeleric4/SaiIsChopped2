@@ -599,7 +599,6 @@ public class SixSpec extends LinearOpMode {
             yValue += 1;
         }
 
-
         if (xValue < 0.5) {
             pickUpPose = new Pose(110.5 - yValue, 74 + xValue, Math.toRadians(180));
         } else if (xValue > 0.5) {

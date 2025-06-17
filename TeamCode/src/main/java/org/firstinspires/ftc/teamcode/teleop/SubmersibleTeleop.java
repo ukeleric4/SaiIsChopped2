@@ -28,7 +28,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.*;
 
 @TeleOp
 public class SubmersibleTeleop extends LinearOpMode {
-    private Limelight3A limelight;
+    //private Limelight3A limelight;
     private PIDFPanning thosewhoknow;
     private PIDFPanning panningMotor;
     private PIDFSlide slides;
@@ -36,7 +36,7 @@ public class SubmersibleTeleop extends LinearOpMode {
     private Orientation orientation;
     private PanningServo panningServo;
     private Pitching pitching;
-    private SpecimenArm2 specimenArm;
+    private SpecimenArm specimenArm;
     private LiatOrientation liatOrientation;
     private LiatClaw liatClaw;
     private HeadingPid headingPid;
@@ -57,37 +57,21 @@ public class SubmersibleTeleop extends LinearOpMode {
     Timer waitTimer;
 
     Timer followerTime;
-    int targetPosition = 750;
-
-    boolean following = false;
-
-    double sigmaHeading;
 
     DcMotor fl;
     DcMotor fr;
     DcMotor bl;
     DcMotor br;
 
-    double offsetX;
-    double offsetY;
-    double[] pythonResults;
-    double uhorientation;
-    double power = 0;
-
-    LLResult result;
-
     @Override
     public void runOpMode() throws InterruptedException {
-        limelight = hardwareMap.get(Limelight3A.class, "limelight");
-        limelight.setPollRateHz(100);
-        limelight.start();
         panningMotor = new PIDFPanning(hardwareMap);
         slides = new PIDFSlide(hardwareMap);
         claw = new Claw(hardwareMap);
         orientation = new Orientation(hardwareMap);
         panningServo = new PanningServo(hardwareMap);
         pitching = new Pitching(hardwareMap);
-        specimenArm = new SpecimenArm2(hardwareMap);
+        specimenArm = new SpecimenArm(hardwareMap);
         liatClaw = new LiatClaw(hardwareMap);
         liatOrientation = new LiatOrientation(hardwareMap);
 
@@ -110,11 +94,11 @@ public class SubmersibleTeleop extends LinearOpMode {
 
         followerTime = new Timer();
 
-        specimenArm.panning1.disable();
+        //specimenArm.panning1.disable();
         specimenArm.panning2.enable();
 
         waitForStart();
-        limelight.pipelineSwitch(0);
+        //limelight.pipelineSwitch(0);
         followerTime.resetTimer();
         opModeTimer.resetTimer();
         waitTimer.resetTimer();
@@ -235,28 +219,37 @@ public class SubmersibleTeleop extends LinearOpMode {
             waitTimerUpdate(500);
             panningMotor.setPower(0);
 
+
+        }
+
+        if (gamepad2.left_trigger > 0.8 ) {
+            slides.setTargetPos(0);
+            velocity = 0.75;
         }
     }
 
     public void score() {
         if (gamepad2.left_bumper) {
-            specimenArm.panning1.disable();
+            //specimenArm.panning1.disable();
             liatClaw.openClaw();
             specimenArm.scorePush();
+            pitching.moveUp();
         }
 
         if (gamepad2.right_trigger > 0.8) {
-            specimenArm.panning1.disable();
+            //specimenArm.panning1.disable();
             headingVelocity = 0.25;
             velocity = 0.75;
             liatOrientation.movePick();
-            if (specimenArm.panning2.getPosition() == 1) {
-                specimenArm.moveSpecific(0.55);
-                waitTimerUpdate(400);
-            } else if (specimenArm.panning1.getPosition() == 0.75) {
-                specimenArm.moveSpecific(0.4);
-                waitTimerUpdate(400);
-            }
+           /*if (specimenArm.panning2.getPosition() == 1) {
+               specimenArm.moveSpecific(0.55);
+               waitTimerUpdate(400);
+           } else if (specimenArm.panning1.getPosition() == 0.75) {
+               specimenArm.moveSpecific(0.4);
+               waitTimerUpdate(400);
+           }*/
+            specimenArm.moveSpecific(0.55);
+            waitTimerUpdate(400);
             specimenArm.pickUp();
             liatClaw.openClaw();
         }
@@ -268,11 +261,11 @@ public class SubmersibleTeleop extends LinearOpMode {
             velocity = 0.6;
             headingVelocity = 0.4;
             liatClaw.closeClaw();
-            waitTimerUpdate(500);
+            waitTimerUpdate(600);
             specimenArm.score();
-            liatOrientation.moveScore();
             panningServo.moveUp();
-            pitching.moveUp();
+            waitTimerUpdate(800);
+            liatOrientation.moveScore();
         }
     }
 
@@ -292,7 +285,7 @@ public class SubmersibleTeleop extends LinearOpMode {
         }
 
         if (gamepad1.a) {
-            specimenArm.panning1.disable();
+            //specimenArm.panning1.disable();
         }
         if (gamepad1.y) {
             specimenArm.panning1.enable();
@@ -336,7 +329,7 @@ public class SubmersibleTeleop extends LinearOpMode {
 
     public void updateAll() {
         orientation();
-        updateLimelight();
+        //updateLimelight();
         hang();
         score();
         update();
@@ -355,101 +348,9 @@ public class SubmersibleTeleop extends LinearOpMode {
         telemetry.update();
     }
 
+
     public void updateFollower() {
         follower.setTeleOpMovementVectors(-gamepad1.left_stick_y * velocity, -gamepad1.left_stick_x * velocity, -gamepad1.right_stick_x * headingVelocity, !robotCentric);
         follower.update();
-    }
-
-    public void updateLimelight() {
-        if (limelight.isRunning()) {
-            telemetry.addData("limelight is running", true);
-        }
-        result = limelight.getLatestResult();
-        if (result == null) {
-            limelight.close();
-            limelight.start();
-            limelight.pipelineSwitch(0);
-            telemetry.addData("Time: ", limelight.getTimeSinceLastUpdate());
-            telemetry.addData("result", "null");
-        }
-
-        if (result != null) {
-            updateResults();
-
-            if (gamepad1.a) {
-                follower.breakFollowing();
-                runBackward(0.2);
-                waitTimerUpdate(250);
-                runBackward(0);
-                followerTime.resetTimer();
-                while (followerTime.getElapsedTime() < 1000) {
-                    updateResults();
-                    slides.setTargetPos(slides.getCurrentPos() + targetPosition);
-                    strafe(power);
-                    orientation.moveSpecific(uhorientation);
-                    slides.updateSlide();
-                }
-                strafe(0);
-                panningServo.moveDown();
-                waitTimerUpdate(300);
-                pitching.moveDown();
-                waitTimerUpdate(200);
-                claw.closeClaw();
-                follower.startTeleopDrive();
-                waitTimerUpdate(200);
-                pitching.moveUp();
-                if (claw.getEncoderPosition() > 160) {
-                    panningServo.moveUp();
-                    slides.setTargetPos(0);
-                    velocity = 1;
-                    headingVelocity = 0.4;
-                } else {
-                    slides.setTargetPos(targetPosition);
-                    panningServo.moveSpecific(0.5);
-                    orientation.moveNormal();
-                }
-            }
-        }
-    }
-
-    public void strafe(double power) {
-        fl.setPower(power * 0.8);
-        br.setPower(power * 0.6);
-        fr.setPower(-power * 0.8);
-        bl.setPower(-power * 0.6);
-    }
-
-    public void runBackward(double power) {
-        double newPower = power;
-        fl.setPower(-newPower);
-        br.setPower(-newPower);
-        fr.setPower(-newPower);
-        bl.setPower(-newPower);
-    }
-
-    public void updateResults() {
-        result = limelight.getLatestResult();
-        offsetX = result.getTx();
-        offsetY = result.getTy();
-        if (offsetX < -1 || offsetX > 1) {
-            if (offsetX > 10 || offsetX < -10) {
-                power = (offsetX + 4) / 25;
-            } else {
-                power = (offsetX + 4) / 40;
-            }
-        } else {
-            power = 0;
-        }
-        if (offsetY == 0) {
-            targetPosition = -100;
-        } else {
-            targetPosition = (int) ((offsetY) * 2);
-        }
-
-        pythonResults = result.getPythonOutput();
-        uhorientation = pythonResults[6];
-
-        telemetry.addData("offsetX: ", offsetX);
-        telemetry.addData("offsetY: ", offsetY);
     }
 }

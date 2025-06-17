@@ -18,7 +18,7 @@ public class LiatPanningServo {
     }
 
     public void moveDown() {
-        panning1.setPosition(0.13);
+        panning1.setPosition(0.11);
     }
     public double getPosition() {
         return panning1.getPosition();
@@ -36,3 +36,4 @@ public class LiatPanningServo {
         panning1.setPwmEnable();
     }
 }
+
